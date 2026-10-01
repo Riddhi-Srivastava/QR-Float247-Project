@@ -540,7 +540,7 @@ export const MenuController: React.FC<MenuControllerProps> = ({
 
       {/* =================================================
 
-          HEADER
+          SEARCH + CATEGORY
 
       ================================================= */}
 
@@ -548,63 +548,23 @@ export const MenuController: React.FC<MenuControllerProps> = ({
 
         style={{
 
-          marginBottom: "14px",
+          background: "#fffdf9",
 
-          display: "flex",
+          border: "1px solid rgba(59,36,24,0.055)",
 
-          alignItems: "center",
+          borderRadius: "14px",
 
-          gap: "12px",
+          padding: "12px",
+
+          marginBottom: "12px",
+
+          boxShadow: "0 4px 16px rgba(59,36,24,0.035)",
 
         }}
 
       >
-
-        <div>
-
-          <h2
-
-            style={{
-
-              margin: 0,
-
-              fontSize: "20px",
-
-              fontWeight: 900,
-
-              color: "#24120d",
-
-            }}
-
-          >
-
-            Menu Management
-
-          </h2>
-
-          <p
-
-            style={{
-
-              margin: "4px 0 0",
-
-              fontSize: "12px",
-
-              color: "#806c61",
-
-            }}
-
-          >
-
-            Manage prices, availability and menu items
-
-          </p>
-
-        </div>
-
-        {/* ADD MENU BUTTON */}
-
-        <button
+          {/* ADD MENU BUTTON */}
+           <button
 
           type="button"
 
@@ -654,33 +614,6 @@ export const MenuController: React.FC<MenuControllerProps> = ({
 
         </button>
 
-      </div>
-
-      {/* =================================================
-
-          SEARCH + CATEGORY
-
-      ================================================= */}
-
-      <div
-
-        style={{
-
-          background: "#fffdf9",
-
-          border: "1px solid rgba(59,36,24,0.055)",
-
-          borderRadius: "14px",
-
-          padding: "12px",
-
-          marginBottom: "12px",
-
-          boxShadow: "0 4px 16px rgba(59,36,24,0.035)",
-
-        }}
-
-      >
 
         <div
 

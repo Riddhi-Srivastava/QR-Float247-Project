@@ -1,7 +1,5 @@
 import React from 'react';
-
 import { useLocation, useNavigate } from 'react-router-dom';
-
 import {
 
   ChefHat,
@@ -248,7 +246,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       shortLabel: 'Menu',
 
-      description: 'Items & pricing',
+      description: '',
 
       icon: UtensilsCrossed,
 
@@ -650,7 +648,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           justify-content: space-between;
 
-          background: #d62300;
+          background: #ff340b;
 
           color: #fff;
 
@@ -1024,100 +1022,133 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* ================= SIDEBAR ================= */}
 
-      <aside className="admin-sidebar">
+  {/* ================= SIDEBAR ================= */}
+<aside className="admin-sidebar">
 
-        <div className="admin-brand">
+  {/* ================= BRAND ================= */}
+  <div className="admin-brand">
 
-          <div className="brand-mark">🍔</div>
+    <div className="brand-mark">
+      🍽️
+    </div>
 
-          <div className="brand-copy">
+    <div className="brand-copy">
+      <div className="brand-name">
+        Float247
+      </div>
 
-            <div className="brand-name">Float247</div>
+      <div className="brand-subtitle">
+        Restaurant Admin
+      </div>
+    </div>
 
-            <div className="brand-subtitle">RESTAURANT ADMIN</div>
+  </div>
 
-          </div>
 
-        </div>
+  {/* ================= NAVIGATION ================= */}
+  <nav className="nav-section">
 
-        <nav className="nav-section">
+    <div className="nav-label">
+      WORKSPACE
+    </div>
 
-          <div className="nav-label">Workspace</div>
+    <div className="nav-list">
 
-          {tabs.map((tab) => {
+      {tabs.map((tab) => {
 
-            const Icon = tab.icon;
+        const Icon = tab.icon;
+        const active = activeTab === tab.id;
 
-            const active = activeTab === tab.id;
-
-            return (
-
-              <button
-
-                key={tab.id}
-
-                type="button"
-
-                className={`nav-item ${active ? 'active' : ''}`}
-
-                onClick={() => navigateToTab(tab.id)}
-
-              >
-
-                <span className="nav-icon">
-
-                  <Icon size={18} />
-
-                </span>
-
-                <span className="nav-copy" style={{ flex: 1 }}>
-
-                  <span className="nav-label-text">{tab.label}</span>
-
-                  <span className="nav-description">{tab.description}</span>
-
-                </span>
-
-                {tab.count > 0 && (
-
-                  <span className="nav-count">{tab.count}</span>
-
-                )}
-
-                {active && <ChevronRight size={14} style={{ opacity: 0.7 }} />}
-
-              </button>
-
-            );
-
-          })}
-
-        </nav>
-
-        <div className="sidebar-footer">
-
-          {/* onSwitchToGuestView handles logout + navigation to "/" */}
-
+        return (
           <button
-
+            key={tab.id}
             type="button"
-
-            className="guest-button"
-
-            onClick={onSwitchToGuestView}
-
+            className={`nav-item ${active ? "active" : ""}`}
+            onClick={() => navigateToTab(tab.id)}
           >
 
-            <ArrowLeft size={14} />
+            {/* ICON */}
+            <span className="nav-icon">
+              <Icon
+                size={19}
+                strokeWidth={active ? 2.5 : 2}
+              />
+            </span>
 
-            <span className="guest-copy">Guest View</span>
+
+            {/* TEXT */}
+            <span
+              className="nav-copy"
+              style={{
+                flex: 1,
+                minWidth: 0,
+              }}
+            >
+
+              <span className="nav-label-text">
+                {tab.label}
+              </span>
+
+              <span className="nav-description">
+                {tab.description}
+              </span>
+
+            </span>
+
+
+            {/* COUNT */}
+            {tab.count > 0 && (
+              <span className="nav-count">
+                {tab.count > 99 ? "99+" : tab.count}
+              </span>
+            )}
+
+
+            {/* ACTIVE ARROW */}
+            {active && (
+              <span className="nav-arrow">
+                <ChevronRight
+                  size={15}
+                  strokeWidth={2.5}
+                />
+              </span>
+            )}
 
           </button>
+        );
 
-        </div>
+      })}
 
-      </aside>
+    </div>
 
+  </nav>
+
+
+  {/* ================= FOOTER ================= */}
+  <div className="sidebar-footer">
+
+    <button
+      type="button"
+      className="guest-button"
+      onClick={onSwitchToGuestView}
+    >
+
+      <span className="guest-icon">
+        <ArrowLeft
+          size={15}
+          strokeWidth={2.5}
+        />
+      </span>
+
+      <span className="guest-copy">
+        Guest View
+      </span>
+
+    </button>
+
+  </div>
+
+</aside>
       {/* ================= MAIN ================= */}
 
       <div className="main-area">
@@ -1138,7 +1169,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             </div>
 
-            <div className="topbar-subtitle">Float247 Restaurant Admin</div>
+            <div className="topbar-subtitle">Float247 </div>
 
           </div>
 
@@ -1189,15 +1220,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <span className="context-title">{activeTabData.description}</span>
 
             </div>
-
-            <div className="context-status">
-
-              <span className="context-status-dot" />
-
-              System operational
-
-            </div>
-
           </div>
 
           {activeTab === 'kds' && (

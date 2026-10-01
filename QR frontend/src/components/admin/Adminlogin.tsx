@@ -143,7 +143,6 @@ const AdminAuth: React.FC<AdminAuthProps> = ({ onLogin }) => {
               marginBottom: "6px",
             }}
           >
-            FLOAT247
           </div>
 
           <h1

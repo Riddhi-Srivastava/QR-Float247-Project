@@ -843,6 +843,7 @@ const GuestView: React.FC<{
       const backendOrder =
 
         response.data.order;
+        
 
       const newOrder: Order = {
 
@@ -2361,92 +2362,64 @@ const isGuestPage =
   }, [restaurantInfo]);
 
   useEffect(() => {
+  const loadOrders = async () => {
+    if (!isAdminLoggedIn) {
+      return;
+    }
 
-    const loadOrders =
+    try {
+      const response = await api.get('/admin/orders');
 
-      async () => {
+      const backendOrders = Array.isArray(response.data?.orders)
+        ? response.data.orders
+        : [];
 
-        if (!isAdminLoggedIn) {
+      const mappedOrders = backendOrders.map((order: any) => ({
+        ...order,
 
-          return;
+        // Frontend Order type
+        orderId: order.id,
 
-        }
+        // Backend: RECEIVED/PREPARING/READY/COMPLETED/CANCELLED
+        // Frontend: received/preparing/ready/completed/cancelled
+        status: String(
+          order.status || 'RECEIVED'
+        ).toLowerCase(),
 
-        try {
+        // Keep backend createdAt
+        createdAt:
+          order.createdAt || new Date().toISOString(),
 
-          const response =
+        // IMPORTANT:
+        // AdminStats needs order.items
+        items: Array.isArray(order.items)
+          ? order.items.map((item: any) => ({
+              ...item,
+              foodId: item.foodId,
+              name: item.name || '',
+              price: Number(item.price || 0),
+              quantity: Number(item.quantity || 0),
+              category: item.category || 'Uncategorized',
+              image: item.image || '',
+            }))
+          : [],
+      }));
 
-            await api.get(
+      setOrders(mappedOrders as Order[]);
+    } catch (error: any) {
+      console.error(
+        'Failed to load admin orders:',
+        error?.response?.data ||
+          error?.message ||
+          error
+      );
 
-              '/admin/orders'
+      setOrders([]);
+    }
+  };
 
-            );
-
-          const backendOrders =
-
-            response.data.orders ||
-
-            [];
-
-          const mappedOrders =
-
-            backendOrders.map(
-
-              (order: any) => ({
-
-                ...order,
-
-                orderId:
-
-                  order.id,
-
-                status: String(
-
-                  order.status ||
-
-                    'RECEIVED'
-
-                ).toLowerCase(),
-
-                createdAt:
-
-                  order.createdAt ||
-
-                  new Date().toISOString(),
-
-              })
-
-            );
-
-          setOrders(
-
-            mappedOrders as Order[]
-
-          );
-
-        } catch (error: any) {
-
-          console.error(
-
-            'Failed to load admin orders:',
-
-            error?.response
-
-              ?.data ||
-
-              error?.message ||
-
-              error
-
-          );
-
-        }
-
-      };
-
-    loadOrders();
-
-  }, [isAdminLoggedIn]);
+  loadOrders();
+}, [isAdminLoggedIn]);
 
   /* =========================================================
 
