@@ -2233,7 +2233,7 @@ export const AdminStats: React.FC<AdminStatsProps> = ({
 
                   <p className="bk-modal-subtitle">
 
-                    Comprehensive performance for {dateLabel.toLowerCase()}
+                    ITEMS WISE SALES BREAKDOWN FOR {dateLabel.toLowerCase()}
 
                   </p>
 

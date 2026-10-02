@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+
 import { useLocation, useNavigate } from 'react-router-dom';
+
 import {
 
   ChefHat,
@@ -140,7 +142,7 @@ const ROUTE_MAP: Record<TabId, string> = {
 
 // Only tabs that actually render something are routable. Any other
 
-// /admin/* path (e.g. /admin/tables) falls back to the kitchen view
+// /admin/\* path (e.g. /admin/tables) falls back to the kitchen view
 
 // instead of showing an empty page.
 
@@ -219,6 +221,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   ).length;
 
   const isDark = theme === 'dark';
+
+  // Responsive layout
+  const [screenWidth, setScreenWidth] = useState(
+    typeof window !== 'undefined' ? window.innerWidth : 1200
+  );
+
+  useEffect(() => {
+    const handleResize = () => setScreenWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobile = screenWidth <= 600;
+  const isTablet = screenWidth > 600 && screenWidth <= 900;
+  const isCompact = isMobile || isTablet;
+  const sidebarWidth = isMobile ? 64 : isTablet ? 76 : 235;
 
   const tabs = [
 
@@ -301,928 +319,361 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       }}
 
     >
-
-      <style>{`
-
-        .admin-dashboard,
-
-        .admin-dashboard * {
-
-          box-sizing: border-box;
-
-        }
-
-        .admin-dashboard button,
-
-        .admin-dashboard input {
-
-          font-family: inherit;
-
-        }
-
-        .admin-sidebar {
-
-          width: 235px;
-
-          height: 100vh;
-
-          position: fixed;
-
-          top: 0;
-
-          left: 0;
-
-          z-index: 1000;
-
-          display: flex;
-
-          flex-direction: column;
-
-          flex-shrink: 0;
-
-          background: ${isDark ? '#1d0e09' : '#fff'};
-
-          border-right: 1px solid ${borderColor};
-
-          overflow-y: auto;
-
-        }
-
-        .admin-brand {
-
-          height: 82px;
-
-          padding: 0 18px;
-
-          display: flex;
-
-          align-items: center;
-
-          gap: 11px;
-
-          border-bottom: 1px solid ${borderColor};
-
-        }
-
-        .brand-mark {
-
-          width: 44px;
-
-          height: 44px;
-
-          flex-shrink: 0;
-
-          display: grid;
-
-          place-items: center;
-
-          border-radius: 14px;
-
-          background: #d62300;
-
-          color: #fff;
-
-          box-shadow: 0 7px 18px rgba(214,35,0,.2);
-
-          font-size: 23px;
-
-        }
-
-        .brand-name {
-
-          color: #d62300;
-
-          font-size: 20px;
-
-          font-weight: 900;
-
-          line-height: 1;
-
-          letter-spacing: -.5px;
-
-        }
-
-        .brand-subtitle {
-
-          margin-top: 5px;
-
-          color: ${isDark ? '#a8958b' : '#92776a'};
-
-          font-size: 9px;
-
-          font-weight: 800;
-
-          letter-spacing: 1px;
-
-        }
-
-        .nav-section {
-
-          padding: 18px 11px;
-
-          flex: 1;
-
-        }
-
-        .nav-label {
-
-          padding: 0 10px 8px;
-
-          color: ${isDark ? '#76645b' : '#aa8e80'};
-
-          font-size: 9px;
-
-          font-weight: 900;
-
-          letter-spacing: 1.2px;
-
-          text-transform: uppercase;
-
-        }
-
-        .nav-item {
-
-          position: relative;
-
-          width: 100%;
-
-          height: 48px;
-
-          margin-bottom: 5px;
-
-          padding: 0 11px;
-
-          border: 0;
-
-          border-radius: 11px;
-
-          display: flex;
-
-          align-items: center;
-
-          gap: 11px;
-
-          background: transparent;
-
-          color: ${isDark ? '#d5c5bc' : '#5a4034'};
-
-          cursor: pointer;
-
-          text-align: left;
-
-          transition: background .18s ease, color .18s ease, transform .18s ease;
-
-        }
-
-        .nav-item\:hover {
-
-          background: ${isDark ? '#2a1710' : '#fff5ed'};
-
-          color: #d62300;
-
-        }
-
-        .nav-item.active {
-
-          background: #d62300;
-
-          color: #fff;
-
-          box-shadow: 0 6px 15px rgba(214,35,0,.17);
-
-        }
-
-        .nav-icon {
-
-          width: 34px;
-
-          height: 34px;
-
-          flex-shrink: 0;
-
-          display: grid;
-
-          place-items: center;
-
-          border-radius: 9px;
-
-        }
-
-        .nav-item\:not(.active) .nav-icon {
-
-          background: ${isDark ? '#28150e' : '#fff7f0'};
-
-        }
-
-        .nav-label-text {
-
-          display: block;
-
-          flex: 1;
-
-          font-size: 12px;
-
-          font-weight: 900;
-
-        }
-
-        .nav-description {
-
-          display: block;
-
-          margin-top: 2px;
-
-          font-size: 8px;
-
-          font-weight: 600;
-
-          opacity: .58;
-
-        }
-
-        .nav-count {
-
-          min-width: 22px;
-
-          height: 22px;
-
-          padding: 0 6px;
-
-          display: grid;
-
-          place-items: center;
-
-          border-radius: 7px;
-
-          background: ${isDark ? '#fff' : '#d62300'};
-
-          color: ${isDark ? '#d62300' : '#fff'};
-
-          font-size: 9px;
-
-          font-weight: 900;
-
-        }
-
-        .nav-item.active .nav-count {
-
-          background: #ffbf18;
-
-          color: #2a160f;
-
-        }
-
-        .sidebar-footer {
-
-          padding: 12px;
-
-          border-top: 1px solid ${borderColor};
-
-        }
-
-        .guest-button {
-
-          width: 100%;
-
-          height: 40px;
-
-          border: 1px solid rgba(214,35,0,.18);
-
-          border-radius: 10px;
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content: center;
-
-          gap: 7px;
-
-          background: ${isDark ? '#28140d' : '#fff8f3'};
-
-          color: #d62300;
-
-          font-size: 10px;
-
-          font-weight: 900;
-
-          cursor: pointer;
-
-          transition: .18s ease;
-
-        }
-
-        .guest-button\:hover {
-
-          background: ${isDark ? '#35190f' : '#fff0e8'};
-
-          border-color: rgba(214,35,0,.3);
-
-          transform: translateY(-1px);
-
-        }
-
-        .main-area {
-
-          margin-left: 235px;
-
-          width: calc(100% - 235px);
-
-          min-width: 0;
-
-          min-height: 100vh;
-
-        }
-
-        .topbar {
-
-          height: 76px;
-
-          flex-shrink: 0;
-
-          padding: 0 22px;
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content: space-between;
-
-          background: #ff340b;
-
-          color: #fff;
-
-          box-shadow: 0 5px 20px rgba(70,30,15,.13);
-
-        }
-
-        .topbar-left {
-
-          min-width: 0;
-
-        }
-
-        .topbar-title-row {
-
-          display: flex;
-
-          align-items: center;
-
-          gap: 9px;
-
-        }
-
-        .topbar-title {
-
-          margin: 0;
-
-          font-size: 21px;
-
-          font-weight: 900;
-
-          letter-spacing: -.35px;
-
-        }
-
-        .topbar-arrow {
-
-          opacity: .55;
-
-        }
-
-        .topbar-subtitle {
-
-          margin-top: 4px;
-
-          font-family: system-ui, sans-serif;
-
-          font-size: 10px;
-
-          opacity: .76;
-
-        }
-
-        .topbar-actions {
-
-          display: flex;
-
-          align-items: center;
-
-          gap: 9px;
-
-        }
-
-        .live-pill {
-
-          height: 34px;
-
-          padding: 0 11px;
-
-          display: flex;
-
-          align-items: center;
-
-          gap: 7px;
-
-          border-radius: 9px;
-
-          background: rgba(0,0,0,.14);
-
-          font-family: system-ui, sans-serif;
-
-          font-size: 10px;
-
-          font-weight: 800;
-
-        }
-
-        .live-dot {
-
-          width: 7px;
-
-          height: 7px;
-
-          border-radius: 50%;
-
-          background: #39df78;
-
-          box-shadow: 0 0 0 3px rgba(57,223,120,.12);
-
-        }
-
-        .theme-button {
-
-          width: 35px;
-
-          height: 35px;
-
-          border: 0;
-
-          border-radius: 9px;
-
-          display: grid;
-
-          place-items: center;
-
-          background: rgba(0,0,0,.14);
-
-          color: #fff;
-
-          cursor: pointer;
-
-          transition: .18s ease;
-
-        }
-
-        .theme-button\:hover {
-
-          background: rgba(0,0,0,.22);
-
-        }
-
-        .content-area {
-
-          flex: 1;
-
-          min-width: 0;
-
-          overflow: auto;
-
-          padding: 18px;
-
-          background:
-
-            radial-gradient(circle at 90% 0%, rgba(214,35,0,.035), transparent 28%),
-
-            ${isDark ? '#160b07' : '#fff8f0'};
-
-        }
-
-        .page-context {
-
-          max-width: 1450px;
-
-          margin: 0 auto 14px;
-
-          display: flex;
-
-          align-items: center;
-
-          justify-content: space-between;
-
-          gap: 12px;
-
-        }
-
-        .context-left {
-
-          display: flex;
-
-          align-items: center;
-
-          gap: 8px;
-
-        }
-
-        .context-icon {
-
-          width: 27px;
-
-          height: 27px;
-
-          display: grid;
-
-          place-items: center;
-
-          border-radius: 7px;
-
-          background: ${isDark ? '#2a150e' : '#fff'};
-
-          color: #d62300;
-
-          border: 1px solid ${isDark ? 'rgba(255,255,255,.05)' : '#eedfd5'};
-
-        }
-
-        .context-title {
-
-          font-size: 11px;
-
-          font-weight: 900;
-
-          color: ${isDark ? '#f2e6df' : '#4d3024'};
-
-        }
-
-        .context-status {
-
-          display: flex;
-
-          align-items: center;
-
-          gap: 6px;
-
-          font-family: system-ui, sans-serif;
-
-          font-size: 9px;
-
-          font-weight: 800;
-
-          color: ${isDark ? '#a9958b' : '#94796b'};
-
-        }
-
-        .context-status-dot {
-
-          width: 6px;
-
-          height: 6px;
-
-          border-radius: 50%;
-
-          background: #22aa58;
-
-        }
-
-        @media (max-width: 900px) {
-
-          .admin-sidebar {
-
-            width: 76px;
-
-          }
-
-          .admin-brand {
-
-            justify-content: center;
-
-            padding: 0;
-
-          }
-
-          .brand-copy,
-
-          .nav-copy,
-
-          .nav-count,
-
-          .nav-label,
-
-          .guest-copy {
-
-            display: none !important;
-
-          }
-
-          .nav-item {
-
-            justify-content: center;
-
-            padding: 0;
-
-          }
-
-          .nav-icon {
-
-            width: 38px;
-
-            height: 38px;
-
-          }
-
-          .guest-button {
-
-            width: 42px;
-
-            margin: auto;
-
-            font-size: 0;
-
-          }
-
-          .guest-button svg {
-
-            margin: 0;
-
-          }
-
-          .main-area {
-
-            margin-left: 76px;
-
-            width: calc(100% - 76px);
-
-          }
-
-        }
-
-        @media (max-width: 600px) {
-
-          .admin-sidebar {
-
-            width: 64px;
-
-          }
-
-          .admin-brand {
-
-            height: 70px;
-
-            padding: 0;
-
-            justify-content: center;
-
-          }
-
-          .nav-section {
-
-            padding: 12px 7px;
-
-          }
-
-          .nav-item {
-
-            justify-content: center;
-
-            padding: 12px 0;
-
-          }
-
-          .nav-icon {
-
-            margin: 0;
-
-          }
-
-          .sidebar-footer {
-
-            padding: 8px 7px;
-
-          }
-
-          .guest-button {
-
-            justify-content: center;
-
-            padding: 12px 0;
-
-          }
-
-          .main-area {
-
-            margin-left: 64px;
-
-            width: calc(100% - 64px);
-
-          }
-
-        }
-
-      `}</style>
-
-      {/* ================= SIDEBAR ================= */}
-
-  {/* ================= SIDEBAR ================= */}
-<aside className="admin-sidebar">
-
-  {/* ================= BRAND ================= */}
-  <div className="admin-brand">
-
-    <div className="brand-mark">
-      🍽️
-    </div>
-
-    <div className="brand-copy">
-      <div className="brand-name">
-        Float247
-      </div>
-
-      <div className="brand-subtitle">
-        Restaurant Admin
-      </div>
-    </div>
-
-  </div>
-
-
-  {/* ================= NAVIGATION ================= */}
-  <nav className="nav-section">
-
-    <div className="nav-label">
-      WORKSPACE
-    </div>
-
-    <div className="nav-list">
-
-      {tabs.map((tab) => {
-
-        const Icon = tab.icon;
-        const active = activeTab === tab.id;
-
-        return (
-          <button
-            key={tab.id}
-            type="button"
-            className={`nav-item ${active ? "active" : ""}`}
-            onClick={() => navigateToTab(tab.id)}
+{/* ================= RESPONSIVE SIDEBAR ================= */}
+      <aside
+        style={{
+          width: `${sidebarWidth}px`,
+          height: '100vh',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column',
+          background: isDark ? '#1c100c' : '#fffaf5',
+          borderRight: isDark ? '1px solid rgba(255,255,255,.06)' : '1px solid #f0ddd2',
+          boxShadow: isDark ? '4px 0 20px rgba(0,0,0,.18)' : '4px 0 24px rgba(95,45,25,.07)',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          transition: 'width .25s ease',
+          boxSizing: 'border-box',
+        }}
+      >
+        {/* BRAND */}
+        <div
+          style={{
+            height: isMobile ? '70px' : '82px',
+            padding: isCompact ? '0' : '0 17px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: isCompact ? 'center' : 'flex-start',
+            gap: '11px',
+            borderBottom: isDark ? '1px solid rgba(255,255,255,.06)' : '1px solid #f2e5dc',
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              width: isMobile ? '40px' : '45px',
+              height: isMobile ? '40px' : '45px',
+              display: 'grid',
+              placeItems: 'center',
+              borderRadius: isMobile ? '12px' : '15px',
+              background: 'linear-gradient(135deg,#ff4b16,#df2405)',
+              color: '#fff',
+              fontSize: isMobile ? '19px' : '22px',
+              boxShadow: '0 7px 18px rgba(223,36,5,.22)',
+              flexShrink: 0,
+            }}
           >
-
-            {/* ICON */}
-            <span className="nav-icon">
-              <Icon
-                size={19}
-                strokeWidth={active ? 2.5 : 2}
-              />
-            </span>
-
-
-            {/* TEXT */}
-            <span
-              className="nav-copy"
-              style={{
-                flex: 1,
-                minWidth: 0,
-              }}
-            >
-
-              <span className="nav-label-text">
-                {tab.label}
-              </span>
-
-              <span className="nav-description">
-                {tab.description}
-              </span>
-
-            </span>
-
-
-            {/* COUNT */}
-            {tab.count > 0 && (
-              <span className="nav-count">
-                {tab.count > 99 ? "99+" : tab.count}
-              </span>
-            )}
-
-
-            {/* ACTIVE ARROW */}
-            {active && (
-              <span className="nav-arrow">
-                <ChevronRight
-                  size={15}
-                  strokeWidth={2.5}
-                />
-              </span>
-            )}
-
-          </button>
-        );
-
-      })}
-
-    </div>
-
-  </nav>
-
-
-  {/* ================= FOOTER ================= */}
-  <div className="sidebar-footer">
-
-    <button
-      type="button"
-      className="guest-button"
-      onClick={onSwitchToGuestView}
-    >
-
-      <span className="guest-icon">
-        <ArrowLeft
-          size={15}
-          strokeWidth={2.5}
-        />
-      </span>
-
-      <span className="guest-copy">
-        Guest View
-      </span>
-
-    </button>
-
-  </div>
-
-</aside>
-      {/* ================= MAIN ================= */}
-
-      <div className="main-area">
-
-        {/* TOP BAR */}
-
-        <header className="topbar">
-
-          <div className="topbar-left">
-
-            <div className="topbar-title-row">
-
-              <h1 className="topbar-title">{activeTabData.label}</h1>
-
-              <ChevronRight className="topbar-arrow" size={16} />
-
-              <Activity size={15} style={{ opacity: 0.7 }} />
-
-            </div>
-
-            <div className="topbar-subtitle">Float247 </div>
-
+            🍽️
           </div>
 
-          <div className="topbar-actions">
+          {!isCompact && (
+            <div style={{ minWidth: 0 }}>
+              <div style={{ color: '#df2b08', fontSize: '20px', fontWeight: 950, lineHeight: 1, letterSpacing: '-.5px' }}>
+                Float247
+              </div>
+              <div style={{ marginTop: '6px', color: isDark ? '#aa9185' : '#96796c', fontSize: '9px', fontWeight: 800, letterSpacing: '1px' }}>
+                RESTAURANT ADMIN
+              </div>
+            </div>
+          )}
+        </div>
 
-            <div className="live-pill">
+        {/* NAVIGATION */}
+        <nav style={{ padding: isCompact ? '12px 7px' : '18px 11px', flex: 1 }}>
+          {!isCompact && (
+            <div style={{ padding: '0 10px 9px', color: isDark ? '#806d62' : '#a88d80', fontSize: '9px', fontWeight: 900, letterSpacing: '1.2px', textTransform: 'uppercase' }}>
+              WORKSPACE
+            </div>
+          )}
 
-              <span className="live-dot" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id;
 
-              LIVE SYSTEM
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => navigateToTab(tab.id)}
+                  title={isCompact ? tab.label : undefined}
+                  style={{
+                    width: '100%',
+                    minHeight: isMobile ? '48px' : '51px',
+                    padding: isCompact ? '6px 0' : '6px 10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: isCompact ? 'center' : 'flex-start',
+                    gap: '10px',
+                    border: active ? '1px solid rgba(255,255,255,.12)' : '1px solid transparent',
+                    borderRadius: isCompact ? '13px' : '15px',
+                    background: active ? 'linear-gradient(135deg,#f04418,#d92808)' : 'transparent',
+                    color: active ? '#fff' : isDark ? '#d8c8c0' : '#553c31',
+                    cursor: 'pointer',
+                    boxShadow: active ? '0 7px 18px rgba(214,35,0,.18)' : 'none',
+                    transition: 'all .2s ease',
+                    boxSizing: 'border-box',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: isMobile ? '36px' : '38px',
+                      height: isMobile ? '36px' : '38px',
+                      display: 'grid',
+                      placeItems: 'center',
+                      borderRadius: '11px',
+                      background: active ? 'rgba(255,255,255,.16)' : isDark ? '#2a1811' : '#fff1e8',
+                      color: active ? '#fff' : '#d9360d',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon size={isMobile ? 18 : 19} strokeWidth={active ? 2.6 : 2.1} />
+                  </span>
 
+                  {!isCompact && (
+                    <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 900, lineHeight: 1.1 }}>
+                        {tab.label}
+                      </span>
+                      {tab.description && (
+                        <span style={{ marginTop: '4px', fontSize: '8px', fontWeight: 700, opacity: active ? 0.82 : 0.55, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {tab.description}
+                        </span>
+                      )}
+                    </span>
+                  )}
+
+                  {!isCompact && tab.count > 0 && (
+                    <span style={{ minWidth: '23px', height: '23px', padding: '0 6px', display: 'grid', placeItems: 'center', borderRadius: '999px', background: active ? '#ffbd17' : '#df2b08', color: active ? '#2b160e' : '#fff', fontSize: '9px', fontWeight: 900 }}>
+                      {tab.count > 99 ? '99+' : tab.count}
+                    </span>
+                  )}
+
+                  {!isCompact && active && <ChevronRight size={16} strokeWidth={2.8} />}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+
+        {/* FOOTER */}
+        <div style={{ padding: isCompact ? '8px 7px' : '12px', borderTop: isDark ? '1px solid rgba(255,255,255,.06)' : '1px solid #f2e5dc' }}>
+          <button
+            type="button"
+            onClick={onSwitchToGuestView}
+            title={isCompact ? 'Guest View' : undefined}
+            style={{
+              width: isCompact ? '42px' : '100%',
+              height: isMobile ? '42px' : '43px',
+              margin: isCompact ? '0 auto' : undefined,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: isCompact ? '0' : '8px',
+              borderRadius: '14px',
+              border: '1px solid rgba(223,43,8,.16)',
+              background: isDark ? '#28150f' : '#fbf0f0',
+              color: '#df2b08',
+              fontSize: '10px',
+              fontWeight: 900,
+              cursor: 'pointer',
+            }}
+          >
+            <ArrowLeft size={16} strokeWidth={2.5} />
+            {!isCompact && 'Guest View'}
+          </button>
+        </div>
+      </aside>
+
+      {/* ================= MAIN ================= */}
+      <div
+        style={{
+          marginLeft: `${sidebarWidth}px`,
+          width: `calc(100% - ${sidebarWidth}px)`,
+          minWidth: 0,
+          minHeight: '100vh',
+          transition: 'margin-left .25s ease, width .25s ease',
+          boxSizing: 'border-box',
+        }}
+      >
+
+        {/* ================= PREMIUM HEADER ================= */}
+        <header
+          style={{
+            height: isMobile ? '64px' : isTablet ? '70px' : '78px',
+            width: isMobile ? 'calc(100% - 12px)' : 'calc(100% - 24px)',
+            margin: isMobile ? '6px 6px 0' : '12px 12px 0',
+            padding: isMobile ? '0 9px' : '0 18px 0 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '10px',
+            background: 'linear-gradient(135deg,#e92d0c 0%,#f04418 55%,#d92308 100%)',
+            color: '#fff',
+            border: '1px solid rgba(255,255,255,.18)',
+            borderRadius: isMobile ? '17px' : '22px',
+            boxShadow: '0 8px 24px rgba(110,38,20,.16), inset 0 1px 0 rgba(255,255,255,.16)',
+            position: 'sticky',
+            top: isMobile ? '6px' : '10px',
+            zIndex: 900,
+            boxSizing: 'border-box',
+          }}
+        >
+          {/* LEFT — ONLY TITLE */}
+          <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '11px', minWidth: 0 }}>
+              <div
+                style={{
+                  width: isMobile ? '34px' : '40px',
+                  height: isMobile ? '34px' : '40px',
+                  display: 'grid',
+                  placeItems: 'center',
+                  borderRadius: isMobile ? '11px' : '14px',
+                  background: 'rgba(255,255,255,.15)',
+                  border: '1px solid rgba(255,255,255,.18)',
+                  color: '#fff',
+                  flexShrink: 0,
+                }}
+              >
+                <ActiveIcon size={isMobile ? 17 : 19} strokeWidth={2.4} />
+              </div>
+
+              <div style={{ minWidth: 0 }}>
+                <h1
+                  style={{
+                    margin: 0,
+                    color: '#fff',
+                    fontSize: isMobile ? '17px' : '22px',
+                    lineHeight: 1.1,
+                    fontWeight: 900,
+                    letterSpacing: '-.4px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {activeTabData.label}
+                </h1>
+
+                {!isMobile && (
+                  <div style={{ marginTop: '4px', color: 'rgba(255,255,255,.72)', fontFamily: 'system-ui, sans-serif', fontSize: isTablet ? '9px' : '10px', fontWeight: 700, letterSpacing: '.25px' }}>
+                    Float247 • Restaurant Admin
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT — ONLY LIVE + THEME */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '5px' : '9px', flexShrink: 0 }}>
+            <div
+              style={{
+                height: isMobile ? '36px' : '39px',
+                width: isMobile ? '36px' : 'auto',
+                padding: isMobile ? '0' : '0 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                borderRadius: '999px',
+                background: 'rgba(92,20,5,.20)',
+                border: '1px solid rgba(255,255,255,.14)',
+                color: '#fff',
+                fontFamily: 'system-ui, sans-serif',
+                fontSize: '10px',
+                fontWeight: 900,
+                letterSpacing: '.45px',
+                boxSizing: 'border-box',
+              }}
+            >
+              <span
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: '#55e68a',
+                  boxShadow: '0 0 0 4px rgba(85,230,138,.14),0 0 12px rgba(85,230,138,.55)',
+                  flexShrink: 0,
+                }}
+              />
+              {!isMobile && 'LIVE SYSTEM'}
             </div>
 
             <button
-
               type="button"
-
-              className="theme-button"
-
               onClick={toggleTheme}
-
               aria-label="Toggle theme"
-
+              style={{
+                width: isMobile ? '36px' : '39px',
+                height: isMobile ? '36px' : '39px',
+                display: 'grid',
+                placeItems: 'center',
+                border: '1px solid rgba(255,255,255,.16)',
+                borderRadius: '50%',
+                background: 'rgba(92,20,5,.20)',
+                color: '#fff',
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
             >
-
-              {isDark ? <Sun size={16} /> : <Moon size={16} />}
-
+              {isDark ? <Sun size={isMobile ? 16 : 18} strokeWidth={2.4} /> : <Moon size={isMobile ? 16 : 18} strokeWidth={2.4} />}
             </button>
-
           </div>
-
         </header>
-
-        {/* CONTENT */}
-
-        <main className="content-area">
-
-          <div className="page-context">
-
-            <div className="context-left">
-
-              <div className="context-icon">
-
-                <ActiveIcon size={14} />
-
-              </div>
-
-              <span className="context-title">{activeTabData.description}</span>
-
+      {/* CONTENT */}
+      <main
+        style={{
+          minWidth: 0,
+          overflow: 'auto',
+          padding: isMobile ? '10px' : '18px',
+          background: `radial-gradient(circle at 90% 0%, rgba(214,35,0,.035), transparent 28%), ${isDark ? '#160b07' : '#fff8f0'}`,
+          boxSizing: 'border-box',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: '1450px',
+            margin: '0 auto 14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div
+              style={{
+                width: '27px',
+                height: '27px',
+                display: 'grid',
+                placeItems: 'center',
+                borderRadius: '8px',
+                background: isDark ? '#2a150e' : '#fff',
+                color: '#d62300',
+                border: `1px solid ${isDark ? 'rgba(255,255,255,.05)' : '#eedfd5'}`,
+              }}
+            >
+              <ActiveIcon size={14} />
             </div>
-          </div>
 
-          {activeTab === 'kds' && (
+            {activeTabData.description && (
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 900,
+                  color: isDark ? '#f2e6df' : '#4d3024',
+                }}
+              >
+                {activeTabData.description}
+              </span>
+            )}
+          </div>
+        </div>
+{activeTab === 'kds' && (
 
             <KitchenKDS
 
