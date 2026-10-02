@@ -20,6 +20,8 @@ import {
 
   Activity,
 
+
+
 } from 'lucide-react';
 
 import {
@@ -220,7 +222,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   ).length;
 
-  const isDark = theme === 'dark';
+  // Admin screens use the shared Float247 warm theme in both persisted modes.
+  void theme;
+  const isDark = false;
 
   // Responsive layout
   const [screenWidth, setScreenWidth] = useState(
@@ -286,13 +290,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const ActiveIcon = activeTabData.icon;
 
-  const borderColor = isDark ? 'rgba(255,255,255,.045)' : 'rgba(60,30,20,.065)';
-
   return (
 
     <div
 
       className="admin-dashboard"
+      data-theme={theme}
 
       style={{
 
@@ -300,9 +303,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         display: 'flex',
 
-        background: isDark ? '#160b07' : '#fff8f0',
+        background: 'var(--color-sand)',
 
-        color: isDark ? '#fff' : '#2a160f',
+        color: 'var(--color-dark)',
 
         fontFamily:
 
@@ -322,7 +325,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           zIndex: 1000,
           display: 'flex',
           flexDirection: 'column',
-          background: isDark ? '#1c100c' : '#fffaf5',
+          background: 'var(--color-cream)',
           borderRight: isDark ? '1px solid rgba(255,255,255,.06)' : '1px solid #f0ddd2',
           boxShadow: isDark ? '4px 0 20px rgba(0,0,0,.18)' : '4px 0 24px rgba(95,45,25,.07)',
           overflowY: 'auto',
@@ -351,8 +354,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               display: 'grid',
               placeItems: 'center',
               borderRadius: isMobile ? '12px' : '15px',
-              background: 'linear-gradient(135deg,#ff4b16,#df2405)',
-              color: '#fff',
+              background: 'var(--color-orange)',
+              color: 'var(--color-dark)',
               fontSize: isMobile ? '19px' : '22px',
               boxShadow: '0 7px 18px rgba(223,36,5,.22)',
               flexShrink: 0,
@@ -363,7 +366,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {!isCompact && (
             <div style={{ minWidth: 0 }}>
-              <div style={{ color: '#df2b08', fontSize: '20px', fontWeight: 950, lineHeight: 1, letterSpacing: '-.5px' }}>
+              <div style={{ color: 'var(--color-dark)', fontSize: '20px', fontWeight: 950, lineHeight: 1, letterSpacing: '-.5px' }}>
                 Float247
               </div>
               <div style={{ marginTop: '6px', color: isDark ? '#aa9185' : '#96796c', fontSize: '9px', fontWeight: 800, letterSpacing: '1px' }}>
@@ -402,8 +405,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     gap: '10px',
                     border: active ? '1px solid rgba(255,255,255,.12)' : '1px solid transparent',
                     borderRadius: isCompact ? '13px' : '15px',
-                    background: active ? 'linear-gradient(135deg,#f04418,#d92808)' : 'transparent',
-                    color: active ? '#fff' : isDark ? '#d8c8c0' : '#553c31',
+                    background: active ? 'var(--color-orange)' : 'transparent',
+                    color: 'var(--color-dark)',
                     cursor: 'pointer',
                     boxShadow: active ? '0 7px 18px rgba(214,35,0,.18)' : 'none',
                     transition: 'all .2s ease',
@@ -418,8 +421,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       display: 'grid',
                       placeItems: 'center',
                       borderRadius: '11px',
-                      background: active ? 'rgba(255,255,255,.16)' : isDark ? '#2a1811' : '#fff1e8',
-                      color: active ? '#fff' : '#d9360d',
+                      background: active ? 'rgba(255,255,255,.35)' : 'var(--color-beige)',
+                      color: 'var(--color-cocoa)',
                       flexShrink: 0,
                     }}
                   >
@@ -504,8 +507,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '10px',
-            background: 'linear-gradient(135deg,#e92d0c 0%,#f04418 55%,#d92308 100%)',
-            color: '#fff',
+            background: 'var(--color-cream)',
+            color: 'var(--color-dark)',
             border: '1px solid rgba(255,255,255,.18)',
             borderRadius: isMobile ? '17px' : '22px',
             boxShadow: '0 8px 24px rgba(110,38,20,.16), inset 0 1px 0 rgba(255,255,255,.16)',
@@ -538,7 +541,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <h1
                   style={{
                     margin: 0,
-                    color: '#fff',
+                    color: 'var(--color-dark)',
                     fontSize: isMobile ? '17px' : '22px',
                     lineHeight: 1.1,
                     fontWeight: 900,
@@ -574,7 +577,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 borderRadius: '999px',
                 background: 'rgba(92,20,5,.20)',
                 border: '1px solid rgba(255,255,255,.14)',
-                color: '#fff',
+                  color: 'var(--color-dark)',
                 fontFamily: 'system-ui, sans-serif',
                 fontSize: '10px',
                 fontWeight: 900,
@@ -622,7 +625,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           minWidth: 0,
           overflow: 'auto',
           padding: isMobile ? '10px' : '18px',
-          background: `radial-gradient(circle at 90% 0%, rgba(214,35,0,.035), transparent 28%), ${isDark ? '#160b07' : '#fff8f0'}`,
+                background: 'var(--color-sand)',
           boxSizing: 'border-box',
         }}
       >

@@ -30,7 +30,6 @@ interface RestaurantHeaderProps {
 export const RestaurantHeader: React.FC<
   RestaurantHeaderProps
 > = ({
-  tableInfo,
   activeOrder,
   activeView,
   onOpenOrderTracker,

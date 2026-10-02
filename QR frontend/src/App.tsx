@@ -260,7 +260,7 @@ const GuestView: React.FC<{
 
   const [includeCutlery, setIncludeCutlery] = useState(true);
 
-  const [serviceRequests, setServiceRequests] =
+  const [, setServiceRequests] =
 
     useState<ServiceRequest[]>([]);
 
@@ -1737,19 +1737,7 @@ export const App: React.FC = () => {
 
   /* ---------------- Admin State ---------------- */
 
-  const isAdminPage =
-
-  location.pathname.startsWith('/admin/') &&
-
-  location.pathname !== '/admin/login';
-
 const adminPage = location.pathname;
-
-const isKitchenPage =
-
-  adminPage === '/admin' ||
-
-  adminPage === '/admin/kitchen';
 
 const isTablesPage =
 
@@ -3311,5 +3299,4 @@ const handleResolveServiceRequest = (
 };
 
 export default App;
-
 
