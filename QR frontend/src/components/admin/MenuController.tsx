@@ -573,6 +573,8 @@ export const MenuController: React.FC<MenuControllerProps> = ({
 
             marginLeft: "auto",
 
+            marginBottom: "8px",
+
             display: "inline-flex",
 
             alignItems: "center",

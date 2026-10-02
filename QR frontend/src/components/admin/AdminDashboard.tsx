@@ -255,22 +255,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       count: pendingOrdersCount,
 
     },
-
-    {
-
-      id: 'menu' as const,
-
-      label: 'Menu',
-
-      shortLabel: 'Menu',
-
-      description: '',
-
-      icon: UtensilsCrossed,
-
-      count: 0,
-
-    },
+{
+  id: 'menu' as const,
+  label: 'Menu',
+  shortLabel: 'Menu',
+  description: 'Manage your food items',
+  icon: UtensilsCrossed,
+  count: 0,
+},
 
     {
 
