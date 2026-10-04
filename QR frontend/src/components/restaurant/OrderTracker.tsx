@@ -350,7 +350,8 @@ const trackerCss = `
 
 export const OrderTracker: React.FC<OrderTrackerProps> = ({
   order,
-  onBackToMenu
+  onBackToMenu,
+  onOpenWaiterModal
 }) => {
   const [currentOrder, setCurrentOrder] =
     useState<Order>(order);

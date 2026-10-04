@@ -2,15 +2,6 @@
     King Grill (Burger King Style) Warm & Vibrant Theme + Admin Styling
     ========================================================================== */
   :root {
-    --color-sand: #E8B36D;
-    --color-cream: #FFF7E8;
-    --color-beige: #F3DFC2;
-    --color-cocoa: #705A53;
-    --color-dark: #3A2925;
-    --color-orange: #FFAA2B;
-    --color-orange-soft: #F5C47C;
-    --color-coral: #E9785D;
-    --color-success: #718A62;
     /* Color Palette - Dark Flame (Default) */
     --bg-primary: #18110c;
     --bg-secondary: #231913;
@@ -88,56 +79,6 @@
     --shadow-md: 0 8px 24px rgba(74, 44, 30, 0.08);
     --shadow-lg: 0 16px 40px rgba(74, 44, 30, 0.12);
   }
-
-  /* Float247 warm restaurant design system. Both saved theme modes use the
-     same palette so every route keeps one consistent visual identity. */
-  :root, [data-theme="dark"], [data-theme="light"] {
-    color-scheme: light;
-    --bg-primary: var(--color-sand);
-    --bg-secondary: var(--color-cream);
-    --bg-tertiary: var(--color-beige);
-    --bg-card: var(--color-cream);
-    --bg-card-hover: #fffaf0;
-    --bg-glass-nav: rgba(255,247,232,.96);
-    --text-primary: var(--color-dark);
-    --text-secondary: var(--color-cocoa);
-    --text-muted: #8b7468;
-    --text-inverse: var(--color-dark);
-    --bk-red: var(--color-coral);
-    --bk-red-hover: #d8664e;
-    --bk-red-glow: rgba(233,120,93,.16);
-    --bk-flame: var(--color-orange);
-    --bk-yellow: var(--color-orange);
-    --bk-yellow-hover: #f39b1b;
-    --bk-mustard: var(--color-orange-soft);
-    --bk-green: var(--color-success);
-    --bk-cream: var(--color-cream);
-    --accent-cyan: var(--color-cocoa);
-    --gradient-flame: var(--color-orange);
-    --gradient-gold: var(--color-orange);
-    --gradient-dark: var(--color-cream);
-    --border-subtle: rgba(112,90,83,.13);
-    --border-strong: rgba(112,90,83,.2);
-    --border-brand: rgba(255,170,43,.45);
-    --shadow-sm: 0 3px 12px rgba(83,55,33,.08);
-    --shadow-md: 0 8px 24px rgba(83,55,33,.1);
-    --shadow-lg: 0 14px 36px rgba(83,55,33,.12);
-    --shadow-flame: 0 4px 14px rgba(255,170,43,.18);
-  }
-
-  body { background: var(--color-sand); color: var(--color-dark); }
-  h1, h2, h3, h4, h5, h6 { color: var(--color-dark); }
-  .btn { border-radius: 16px; }
-  .btn-primary, .btn-gold { background: var(--color-orange); color: var(--color-dark); box-shadow: 0 4px 12px rgba(112,90,83,.12); }
-  .btn-primary:hover, .btn-gold:hover { background: #f39b1b; }
-  .btn-secondary { background: var(--color-beige); color: var(--color-dark); border-color: transparent; }
-  .glass-card, .stat-card, .feature-card, .food-card, .modal-sheet, .checkout-modal-sheet, .review-modal-sheet {
-    background: var(--color-cream); border-color: var(--color-beige); border-radius: 24px; box-shadow: var(--shadow-sm);
-  }
-  input, select, textarea { color: var(--color-dark); }
-  input:focus, select:focus, textarea:focus { border-color: var(--color-orange) !important; outline-color: var(--color-orange); }
-  .badge, .category-pill.active, .review-tag-chip.tag-selected { background: var(--color-orange); color: var(--color-dark); }
-  .footer { background: var(--color-cream); color: var(--color-dark); }
 
   /* Base & Resets */
   *, *::before, *::after {
@@ -1923,22 +1864,6 @@
       transform: translateY(0);
     }
   }
-
-/* Shared warm-surface treatment for embedded checkout, tracker and kitchen UIs. */
-.co-modal, .co-card, .co-section, .co-summary, .ot-card, .ot-tray,
-.kds-panel, .kds-card, .kds-column, .bk-card, .bk-panel {
-  background-color: var(--color-cream) !important;
-  border-color: var(--color-beige) !important;
-  color: var(--color-dark);
-  border-radius: 20px;
-  box-shadow: var(--shadow-sm);
-}
-.co-cta, .kds-action, .kds-pager button, .kds-toggle button.is-on,
-.bk-primary, .bk-btn-primary { background: var(--color-orange) !important; color: var(--color-dark) !important; }
-.kds, .kds[data-theme="dark"], .bk-admin { background: var(--color-sand) !important; color: var(--color-dark) !important; }
-.kds button:focus-visible, .kds select:focus-visible, .kds input:focus-visible { outline-color: var(--color-orange) !important; }
-.co-input, .co-textarea, .co-select, .kds input, .kds select { background: var(--color-cream) !important; border-color: var(--color-beige) !important; color: var(--color-dark) !important; }
-.co-input:focus, .co-textarea:focus, .co-select:focus { border-color: var(--color-orange) !important; }
   /* ============================================================
      FLOAT247 BRANDING & HEADER STYLES
      ============================================================ */
