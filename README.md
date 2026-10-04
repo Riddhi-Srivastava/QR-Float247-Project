@@ -117,7 +117,7 @@ Performance work must not change:
 Git
 Frontend and backend are maintained in the same root Git repository.
 Repository:
-Riddhi-Srivastava/QR-Float247-Project
+  /QR-Float247-Project
 Files Not to Commit
 .env
 .env.*
