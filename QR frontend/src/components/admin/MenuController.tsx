@@ -9,6 +9,7 @@ import {
   X,
   MoreVertical,
   Pencil,
+  Download,
   Star,
   Tag,
   IndianRupee,
@@ -22,6 +23,7 @@ import {
 } from "lucide-react";
 
 import { MenuItem } from "../../types/restaurant";
+import api from "../../lib/api";
 
 // =====================================================
 // TYPES
@@ -87,6 +89,7 @@ export const MenuController: React.FC<MenuControllerProps> = ({
   // EDIT MENU
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editMenu, setEditMenu] = useState({
     name: "",
     description: "",
@@ -116,6 +119,7 @@ export const MenuController: React.FC<MenuControllerProps> = ({
     popular: false,
     featured: false,
   });
+  const [newImageFile, setNewImageFile] = useState<File | null>(null);
 
   // CATEGORIES (real data)
   const categories = useMemo(() => {
@@ -181,6 +185,7 @@ export const MenuController: React.FC<MenuControllerProps> = ({
       popular: false,
       featured: false,
     });
+    setNewImageFile(null);
   };
 
   const handleAddMenuSubmit = async (e: React.FormEvent) => {
@@ -193,13 +198,12 @@ export const MenuController: React.FC<MenuControllerProps> = ({
 
     const name = newMenu.name.trim();
     const description = newMenu.description.trim();
-    const image = newMenu.image.trim();
     const restaurantId = newMenu.restaurantId.trim();
     const categoryId = newMenu.categoryId.trim();
     const price = Number(newMenu.price);
     const prepTime = Number(newMenu.prepTime);
 
-    if (!name || !description || !image || !restaurantId || !categoryId) {
+    if (!name || !description || !newImageFile || !restaurantId || !categoryId) {
       alert("Please fill all required fields.");
       return;
     }
@@ -212,23 +216,41 @@ export const MenuController: React.FC<MenuControllerProps> = ({
       return;
     }
 
-    const payload: AddMenuItemData = {
-      id: crypto.randomUUID(),
-      name,
-      description,
-      price,
-      veg: newMenu.veg,
-      image,
-      prepTime,
-      restaurantId,
-      categoryId,
-      available: newMenu.available,
-      popular: newMenu.popular,
-      featured: newMenu.featured,
-    };
-
     try {
       setIsSubmitting(true);
+
+      const formData = new FormData();
+      formData.append("image", newImageFile);
+
+      const uploadResponse = await api.post(
+        "/admin/foods/upload-image",
+        formData
+      );
+
+      if (
+        !uploadResponse.data?.success ||
+        !uploadResponse.data?.imageUrl
+      ) {
+        throw new Error(
+          uploadResponse.data?.message || "Image upload failed"
+        );
+      }
+
+      const payload: AddMenuItemData = {
+        id: crypto.randomUUID(),
+        name,
+        description,
+        price,
+        veg: newMenu.veg,
+        image: uploadResponse.data.imageUrl,
+        prepTime,
+        restaurantId,
+        categoryId,
+        available: newMenu.available,
+        popular: newMenu.popular,
+        featured: newMenu.featured,
+      };
+
       await onAddMenuItem(payload);
       resetNewMenu();
       setShowAddMenu(false);
@@ -240,8 +262,24 @@ export const MenuController: React.FC<MenuControllerProps> = ({
   };
 
   // EDIT MENU
+  const handleDownloadImage = (item: MenuItem) => {
+    if (!item.image) {
+      alert("Image is not available for download.");
+      return;
+    }
+
+    const downloadUrl = item.image.replace("/upload/", "/upload/fl_attachment/");
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = `${item.name || "menu-item"}.jpg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleEditClick = (item: MenuItem) => {
     setEditingItem(item);
+    setEditImageFile(null);
     setEditMenu({
       name: item.name || "",
       description: item.description || "",
@@ -290,22 +328,46 @@ export const MenuController: React.FC<MenuControllerProps> = ({
       return;
     }
 
-    const payload: EditMenuItemData = {
-      id: editingItem.id,
-      name,
-      description,
-      price,
-      veg: editMenu.veg,
-      image,
-      prepTime,
-      categoryId,
-      available: editMenu.available,
-      popular: editMenu.popular,
-      featured: editMenu.featured,
-    };
-
     try {
       setIsEditSubmitting(true);
+
+      let imageUrl = image;
+
+      if (editImageFile) {
+        const formData = new FormData();
+        formData.append("image", editImageFile);
+
+        const uploadResponse = await api.post(
+          "/admin/foods/upload-image",
+          formData
+        );
+
+        if (
+          !uploadResponse.data?.success ||
+          !uploadResponse.data?.imageUrl
+        ) {
+          throw new Error(
+            uploadResponse.data?.message || "Image upload failed"
+          );
+        }
+
+        imageUrl = uploadResponse.data.imageUrl;
+      }
+
+      const payload: EditMenuItemData = {
+        id: editingItem.id,
+        name,
+        description,
+        price,
+        veg: editMenu.veg,
+        image: imageUrl,
+        prepTime,
+        categoryId,
+        available: editMenu.available,
+        popular: editMenu.popular,
+        featured: editMenu.featured,
+      };
+
       await onEditMenuItem(payload);
       setEditingItem(null);
     } catch (error) {
@@ -516,6 +578,9 @@ export const MenuController: React.FC<MenuControllerProps> = ({
                         <button type="button" onClick={() => handleEditClick(item)}>
                           <Pencil size={13} /> Edit
                         </button>
+                        <button type="button" onClick={() => handleDownloadImage(item)}>
+                          <Download size={13} /> Download
+                        </button>
                       </div>
                     )}
                   </div>
@@ -592,14 +657,13 @@ export const MenuController: React.FC<MenuControllerProps> = ({
               <option value="NON_VEG">Non-veg</option>
             </select>
           </Field>
-          <Field label="Image URL" icon={<ImageIcon size={13} />}>
+          <Field label="Photo" icon={<ImageIcon size={13} />}>
             <input
               required
-              type="url"
+              type="file"
+              accept="image/*"
               className="mc-input"
-              value={newMenu.image}
-              onChange={(e) => handleNewMenuChange("image", e.target.value)}
-              placeholder="https://..."
+              onChange={(e) => setNewImageFile(e.target.files?.[0] || null)}
             />
           </Field>
           <Field label="Restaurant ID" icon={<Store size={13} />}>
@@ -688,13 +752,25 @@ export const MenuController: React.FC<MenuControllerProps> = ({
               <option value="NON_VEG">Non-veg</option>
             </select>
           </Field>
-          <Field label="Image URL" icon={<ImageIcon size={13} />}>
+          <Field label="Photo" icon={<ImageIcon size={13} />}>
+            {editMenu.image && (
+              <img
+                src={editMenu.image}
+                alt={editMenu.name}
+                style={{
+                  width: "100%",
+                  height: "120px",
+                  objectFit: "cover",
+                  borderRadius: "10px",
+                  marginBottom: "8px",
+                }}
+              />
+            )}
             <input
-              required
-              type="url"
+              type="file"
+              accept="image/*"
               className="mc-input"
-              value={editMenu.image}
-              onChange={(e) => handleEditMenuChange("image", e.target.value)}
+              onChange={(e) => setEditImageFile(e.target.files?.[0] || null)}
             />
           </Field>
           <Field label="Category ID" icon={<Tag size={13} />} full>
