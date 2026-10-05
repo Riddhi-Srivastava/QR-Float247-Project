@@ -20,6 +20,13 @@ import {
   FileText,
   Leaf,
   SearchX,
+  LayoutGrid,
+  Drumstick,
+  Wheat,
+  Soup,
+  Salad,
+  IceCream,
+  CupSoda,
 } from "lucide-react";
 
 import { MenuItem } from "../../types/restaurant";
@@ -65,6 +72,24 @@ interface MenuControllerProps {
   onAddMenuItem?: (data: AddMenuItemData) => Promise<void> | void;
   onEditMenuItem?: (data: EditMenuItemData) => Promise<void> | void;
 }
+
+// =====================================================
+// CATEGORY ICON (display only)
+// =====================================================
+
+const getCategoryIcon = (category: string) => {
+  const c = category.toLowerCase();
+
+  if (c === "all") return LayoutGrid;
+  if (/bread|naan|roti|paratha|kulcha/.test(c)) return Wheat;
+  if (/rice|biryani|pulao/.test(c)) return Soup;
+  if (/starter|appetizer|appetiser|snack|tikka|kebab/.test(c)) return Salad;
+  if (/dessert|sweet|ice|cake/.test(c)) return IceCream;
+  if (/drink|beverage|shake|juice|soda|tea|coffee/.test(c)) return CupSoda;
+  if (/main|curry|gravy/.test(c)) return Drumstick;
+
+  return Utensils;
+};
 
 // =====================================================
 // COMPONENT
@@ -417,8 +442,10 @@ export const MenuController: React.FC<MenuControllerProps> = ({
             </span>
           </div>
 
-          <button type="button" className="mc-btn-primary" onClick={() => setShowAddMenu(true)}>
-            <Plus size={16} strokeWidth={2.6} />
+          <button type="button" className="mc-btn-primary mc-btn-add" onClick={() => setShowAddMenu(true)}>
+            <span className="mc-btn-add-icon">
+              <Plus size={14} strokeWidth={3} />
+            </span>
             Add menu item
           </button>
         </div>
@@ -426,6 +453,7 @@ export const MenuController: React.FC<MenuControllerProps> = ({
         <div className="mc-chips">
           {categories.map((category) => {
             const active = selectedCategory === category;
+            const CategoryIcon = getCategoryIcon(category);
             return (
               <button
                 key={category}
@@ -433,6 +461,9 @@ export const MenuController: React.FC<MenuControllerProps> = ({
                 className={`mc-chip ${active ? "is-active" : ""}`}
                 onClick={() => setSelectedCategory(category)}
               >
+                <span className="mc-chip-icon">
+                  <CategoryIcon size={14} strokeWidth={2.4} />
+                </span>
                 {category === "all" ? "All" : category}
                 <span className="mc-chip-count">{categoryCount[category] ?? 0}</span>
               </button>
@@ -473,7 +504,10 @@ export const MenuController: React.FC<MenuControllerProps> = ({
             const isVeg = item.dietary === "veg" || item.dietary === "vegan";
 
             return (
-              <div key={item.id} className={`mc-row mc-item ${isAvailable ? "" : "is-off"}`}>
+              <div
+                key={item.id}
+                className={`mc-row mc-item ${isAvailable ? "" : "is-off"} ${openMenuId === item.id ? "is-open" : ""}`}
+              >
                 {/* DISH */}
                 <div className="mc-dish">
                   {item.image ? (
@@ -895,10 +929,18 @@ const CSS = `
   --surface: #fffdf9;
   --tint: #fbf4ec;
   --green: #509e2f;
+
+  /* Height is never fixed: the page grows with its content.
+     The bottom padding keeps the last row's action dropdown
+     fully inside the page instead of getting cut off. */
   width: 100%;
+  height: auto;
+  min-height: 0;
+  padding-bottom: 110px;
   box-sizing: border-box;
   color: var(--ink);
   font-size: 13px;
+  overflow: visible;
 }
 .mc *, .mc *::before, .mc *::after { box-sizing: border-box; }
 .mc button { font-family: inherit; }
@@ -914,16 +956,29 @@ const CSS = `
 }
 
 /* ---------- toolbar ---------- */
-.mc-toolbar { padding: 12px; margin-bottom: 12px; display: grid; gap: 12px; }
+.mc-toolbar { padding: 12px; margin-bottom: 14px; display: grid; gap: 12px; }
 .mc-toolbar-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .mc-search {
-  flex: 1; min-width: 220px; height: 40px; display: flex; align-items: center; gap: 8px;
-  padding: 0 12px; background: var(--tint); border: 1px solid var(--line); border-radius: 10px; color: var(--muted);
+  flex: 1; min-width: 220px; height: 46px; display: flex; align-items: center; gap: 10px;
+  padding: 0 8px 0 7px; color: var(--muted);
+  background: linear-gradient(180deg, #fffaf4 0%, #fbf1e6 100%);
+  border: 1.5px solid #f3e3d3; border-radius: 999px;
+  box-shadow: inset 0 2px 4px rgba(120,75,50,0.05), 0 2px 8px rgba(120,75,50,0.04);
+  transition: border-color .2s, box-shadow .2s, background .2s;
 }
-.mc-search:focus-within { border-color: rgba(214,35,0,0.4); background: #fff; }
-.mc-search input { flex: 1; min-width: 0; border: none; outline: none !important; background: transparent; color: var(--ink); font-size: 13px; }
-.mc-search-clear { border: none; background: transparent; color: var(--muted); display: grid; place-items: center; cursor: pointer; padding: 2px; border-radius: 6px; }
-.mc-search-clear:hover { background: rgba(59,36,24,0.07); }
+.mc-search > svg:first-child {
+  width: 32px; height: 32px; padding: 8px; flex-shrink: 0;
+  border-radius: 50%; background: #fde9df; color: var(--red);
+}
+.mc-search:hover { border-color: #ecd3bd; }
+.mc-search:focus-within {
+  border-color: rgba(214,35,0,0.35); background: #fff;
+  box-shadow: 0 0 0 4px rgba(214,35,0,0.07), 0 4px 14px rgba(214,35,0,0.07);
+}
+.mc-search input { flex: 1; min-width: 0; border: none; outline: none !important; background: transparent; color: var(--ink); font-size: 13.5px; font-weight: 600; }
+.mc-search input::placeholder { color: #b49a8c; font-weight: 600; }
+.mc-search-clear { width: 28px; height: 28px; flex-shrink: 0; border: none; background: #f3e4d6; color: var(--soft); display: grid; place-items: center; cursor: pointer; border-radius: 50%; transition: background .15s, color .15s; }
+.mc-search-clear:hover { background: var(--red); color: #fff; }
 
 .mc-summary { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; white-space: nowrap; }
 .mc-summary b { color: var(--ink); font-weight: 700; }
@@ -942,37 +997,75 @@ const CSS = `
 }
 .mc-btn-ghost:hover { background: #f6ebdf; }
 
-.mc-chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+/* catchy "Add menu item" button */
+.mc-btn-add {
+  position: relative; overflow: hidden; height: 46px; padding: 0 20px 0 10px; gap: 10px;
+  border-radius: 999px; font-size: 13.5px; letter-spacing: .2px;
+  background: linear-gradient(135deg, #ff5a1f 0%, #e8300a 50%, #c91f00 100%);
+  box-shadow: 0 8px 20px rgba(214,35,0,0.28), inset 0 1px 0 rgba(255,255,255,0.28);
+  transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+}
+.mc-btn-add::after {
+  content: ""; position: absolute; top: 0; left: -70%; width: 45%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,0.35), transparent);
+  transform: skewX(-20deg); transition: left .6s ease; pointer-events: none;
+}
+.mc-btn-add:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff6a2f 0%, #f03a10 50%, #d62300 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(214,35,0,0.36), inset 0 1px 0 rgba(255,255,255,0.3);
+}
+.mc-btn-add:hover:not(:disabled)::after { left: 120%; }
+.mc-btn-add:active:not(:disabled) { transform: translateY(0); }
+.mc-btn-add-icon {
+  width: 28px; height: 28px; flex-shrink: 0; display: grid; place-items: center;
+  border-radius: 50%; background: #fff; color: #d62300;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15); transition: transform .25s ease;
+}
+.mc-btn-add:hover .mc-btn-add-icon { transform: rotate(90deg) scale(1.06); }
+
+.mc-chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
 .mc-chip {
   height: 32px; padding: 0 12px; flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px;
   border: 1px solid var(--line); border-radius: 999px; background: var(--tint); color: var(--soft);
   font-size: 12px; font-weight: 600; cursor: pointer; text-transform: capitalize; transition: all .15s;
 }
+.mc-chip { padding-left: 7px; height: 36px; }
+.mc-chip-icon {
+  width: 24px; height: 24px; flex-shrink: 0; display: grid; place-items: center;
+  border-radius: 50%; background: #fde9df; color: var(--red); transition: background .15s, color .15s;
+}
 .mc-chip:hover { border-color: rgba(214,35,0,0.3); }
-.mc-chip.is-active { background: var(--red); border-color: var(--red); color: #fff; }
+.mc-chip.is-active { background: var(--red); border-color: var(--red); color: #fff; box-shadow: 0 4px 12px rgba(214,35,0,0.22); }
+.mc-chip.is-active .mc-chip-icon { background: rgba(255,255,255,0.22); color: #fff; }
 .mc-chip-count { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: rgba(59,36,24,0.08); }
 .mc-chip.is-active .mc-chip-count { background: rgba(255,255,255,0.22); }
 
 /* ---------- table ---------- */
-.mc-table { overflow: visible; }
+/* No fixed/max height anywhere: rows decide the height, so the
+   table grows with the number of items. Overflow stays visible so
+   the dropdown is never clipped by the card. */
+.mc-table { height: auto; max-height: none; overflow: visible; }
 .mc-row {
-  display: grid; grid-template-columns: minmax(240px,2.2fr) 1fr 120px 110px 170px;
-  gap: 12px; align-items: center; padding: 10px 16px;
+  display: grid; grid-template-columns: minmax(240px,2.2fr) minmax(90px,1fr) 120px 110px 170px;
+  gap: 12px; align-items: center; padding: 14px 16px; min-height: 72px;
 }
-.mc-head { background: var(--tint); border-bottom: 1px solid var(--line); border-radius: 14px 14px 0 0; padding: 11px 16px; }
+.mc-head { min-height: 0; background: var(--tint); border-bottom: 1px solid var(--line); border-radius: 14px 14px 0 0; padding: 11px 16px; }
 .mc-th { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 700; }
 .mc-th svg { color: var(--red); opacity: .85; }
-.mc-item { border-bottom: 1px solid rgba(59,36,24,0.05); transition: background .12s; }
+.mc-item { position: relative; border-bottom: 1px solid rgba(59,36,24,0.05); transition: background .12s; }
 .mc-item:last-child { border-bottom: none; border-radius: 0 0 14px 14px; }
 .mc-item:hover { background: #fffaf3; }
+/* the row with an open dropdown always sits above its neighbours */
+.mc-item.is-open { z-index: 20; background: #fffaf3; }
 .mc-item.is-off .mc-dish, .mc-item.is-off .mc-cell:not(.mc-avail) { opacity: .55; }
 
 .mc-dish { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.mc-thumb { width: 46px; height: 46px; flex-shrink: 0; object-fit: cover; border-radius: 10px; background: #f1e5d9; }
+.mc-thumb { width: 48px; height: 48px; flex-shrink: 0; object-fit: cover; border-radius: 10px; background: #f1e5d9; }
 .mc-thumb-empty { display: grid; place-items: center; color: var(--red); }
 .mc-dish-text { min-width: 0; }
-.mc-dish-name { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; }
-.mc-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc-dish-name { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; min-width: 0; }
+.mc-ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .mc-meta { margin-top: 3px; display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); }
 
 .mc-diet { width: 13px; height: 13px; flex-shrink: 0; border: 1.5px solid; border-radius: 3px; display: grid; place-items: center; }
@@ -980,11 +1073,11 @@ const CSS = `
 .mc-diet.veg { color: var(--green); }
 .mc-diet.nonveg { color: var(--red); }
 
-.mc-tag { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #f7eee5; color: #6d5143; font-size: 11px; font-weight: 600; text-transform: capitalize; }
+.mc-tag { display: inline-block; max-width: 100%; padding: 4px 10px; border-radius: 999px; background: #f7eee5; color: #6d5143; font-size: 11px; font-weight: 600; text-transform: capitalize; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
 
 .mc-price {
   display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; margin-left: -8px; border: none; border-radius: 8px;
-  background: transparent; color: var(--ink); font-size: 13px; font-weight: 700; cursor: pointer;
+  background: transparent; color: var(--ink); font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap;
 }
 .mc-price svg { color: var(--muted); opacity: 0; transition: opacity .12s; }
 .mc-price:hover { background: #f7eee5; }
@@ -992,33 +1085,33 @@ const CSS = `
 .mc-price-edit { display: flex; align-items: center; gap: 4px; }
 .mc-price-edit span { font-weight: 700; color: var(--red); }
 .mc-price-edit input { width: 70px; height: 30px; padding: 0 8px; border: 1px solid var(--red); border-radius: 8px; background: #fff; color: var(--ink); font-size: 12px; font-weight: 700; outline: none; }
-.mc-price-edit button { width: 30px; height: 30px; border: none; border-radius: 8px; background: var(--red); color: #fff; display: grid; place-items: center; cursor: pointer; }
+.mc-price-edit button { width: 30px; height: 30px; border: none; border-radius: 8px; background: var(--red); color: #fff; display: grid; place-items: center; cursor: pointer; flex-shrink: 0; }
 
-.mc-rating { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--ink); }
+.mc-rating { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--ink); white-space: nowrap; }
 .mc-rating svg { color: #f2a600; }
 .mc-rating em { font-style: normal; font-weight: 500; color: var(--muted); font-size: 11px; }
 
 .mc-avail { display: flex; align-items: center; gap: 8px; }
 .mc-stock {
   height: 32px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; border-radius: 999px;
-  font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid transparent;
+  font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid transparent; white-space: nowrap;
 }
 .mc-stock.in { background: #edf7e9; color: var(--green); border-color: rgba(80,158,47,0.18); }
 .mc-stock.out { background: #fff0eb; color: var(--red); border-color: rgba(214,35,0,0.15); }
 
-.mc-more-wrap { position: relative; }
+.mc-more-wrap { position: relative; flex-shrink: 0; }
 .mc-icon-btn { width: 32px; height: 32px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--soft); display: grid; place-items: center; cursor: pointer; flex-shrink: 0; }
 .mc-icon-btn:hover { background: #f7eee5; }
-.mc-dropdown { position: absolute; right: 0; top: 38px; z-index: 100; min-width: 120px; padding: 5px; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.12); }
-.mc-dropdown button { width: 100%; display: flex; align-items: center; gap: 8px; border: none; background: transparent; padding: 8px 10px; text-align: left; border-radius: 7px; color: var(--ink); font-size: 12px; font-weight: 600; cursor: pointer; }
+.mc-dropdown { position: absolute; right: 0; top: calc(100% + 6px); z-index: 100; min-width: 140px; padding: 6px; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.12); }
+.mc-dropdown button { width: 100%; min-height: 36px; display: flex; align-items: center; gap: 8px; border: none; background: transparent; padding: 8px 10px; text-align: left; border-radius: 7px; color: var(--ink); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .mc-dropdown button:hover { background: var(--tint); }
 
 .mc-empty { padding: 44px 20px; display: grid; justify-items: center; gap: 6px; text-align: center; color: var(--muted); }
 .mc-empty strong { color: var(--ink); font-size: 14px; }
 
 /* ---------- modal ---------- */
-.mc-overlay { position: fixed; inset: 0; background: rgba(24,12,7,0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 20px; }
-.mc-modal { width: 100%; max-width: 720px; max-height: 90vh; overflow-y: auto; background: var(--surface); border-radius: 18px; box-shadow: 0 24px 70px rgba(0,0,0,0.25); padding: 22px; }
+.mc-overlay { position: fixed; inset: 0; background: rgba(24,12,7,0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; overscroll-behavior: contain; }
+.mc-modal { width: 100%; max-width: 720px; max-height: 90vh; max-height: 90dvh; overflow-y: auto; background: var(--surface); border-radius: 18px; box-shadow: 0 24px 70px rgba(0,0,0,0.25); padding: 22px; }
 .mc-modal-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
 .mc-modal-head h3 { margin: 0; font-size: 18px; font-weight: 800; }
 .mc-modal-head p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
@@ -1036,8 +1129,14 @@ const CSS = `
 .mc-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 
 /* ---------- responsive ---------- */
-.mc-cq { container-type: inline-size; container-name: mc; }
+/* overflow stays visible so a container never clips the dropdown */
+.mc-cq { container-type: inline-size; container-name: mc; overflow: visible; }
 .mc-row > * { min-width: 0; }
+
+/* medium panels: tighten the columns before switching to cards */
+@container mc (max-width: 1040px) {
+  .mc-row { grid-template-columns: minmax(200px,2fr) minmax(80px,.9fr) 104px 96px 160px; gap: 10px; padding-left: 14px; padding-right: 14px; }
+}
 
 /* panel width (not screen width) decides the layout */
 @container mc (max-width: 820px) {
@@ -1049,14 +1148,15 @@ const CSS = `
 
   .mc-row {
     grid-template-columns: auto auto 1fr;
-    gap: 10px 10px;
-    padding: 12px 14px;
+    gap: 12px 10px;
+    padding: 14px;
+    min-height: 0;
   }
   .mc-dish { grid-column: 1 / -1; grid-row: 1; }
-  .mc-cell[data-label="Category"] { grid-column: 1; grid-row: 2; }
+  .mc-cell[data-label="Category"] { grid-column: 1; grid-row: 2; min-width: 0; max-width: 100%; }
   .mc-cell[data-label="Rating"] { grid-column: 2; grid-row: 2; }
   .mc-cell[data-label="Price"] { grid-column: 3; grid-row: 2; justify-self: end; }
-  .mc-avail { grid-column: 1 / -1; grid-row: 3; justify-content: space-between; padding-top: 10px; border-top: 1px dashed var(--line); }
+  .mc-avail { grid-column: 1 / -1; grid-row: 3; justify-content: space-between; padding-top: 12px; border-top: 1px dashed var(--line); }
   .mc-price { margin: 0 -8px 0 0; font-size: 14px; color: var(--red); }
   .mc-price svg { opacity: .55; }
   .mc-price-edit input { width: 80px; }
@@ -1065,13 +1165,15 @@ const CSS = `
 
 @container mc (max-width: 380px) {
   .mc-chip { height: 30px; padding: 0 10px; }
-  .mc-thumb { width: 42px; height: 42px; }
+  .mc-thumb { width: 44px; height: 44px; }
+  .mc-row { padding: 12px; }
 }
 
 /* modals are fixed to the screen, so they use screen width */
 @media (max-width: 600px) {
+  .mc { padding-bottom: 130px; }
   .mc-overlay { padding: 12px; align-items: flex-end; }
-  .mc-modal { padding: 16px; max-height: 92vh; border-radius: 16px; }
+  .mc-modal { padding: 16px; max-height: 92vh; max-height: 92dvh; border-radius: 16px; }
   .mc-form-grid, .mc-options { grid-template-columns: 1fr; }
   .mc-modal-actions .mc-btn-primary, .mc-modal-actions .mc-btn-ghost { flex: 1; }
 }

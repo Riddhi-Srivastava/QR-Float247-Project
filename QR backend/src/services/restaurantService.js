@@ -61,57 +61,51 @@ const getRestaurantById = async (id) => {
 
 // Update Restaurant
 const updateRestaurant = async (id, data) => {
-  const existingRestaurant = await prisma.restaurant.findUnique({
-    where: { id },
-  });
-
-  if (!existingRestaurant) {
-    throw new Error("Restaurant not found");
+  try {
+    return await prisma.restaurant.update({
+      where: { id },
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.tagline !== undefined && { tagline: data.tagline }),
+        ...(data.cuisine !== undefined && { cuisine: data.cuisine }),
+        ...(data.image !== undefined && { image: data.image }),
+        ...(data.logo !== undefined && { logo: data.logo }),
+        ...(data.openTime !== undefined && { openTime: data.openTime }),
+        ...(data.closeTime !== undefined && { closeTime: data.closeTime }),
+        ...(data.isOpen !== undefined && { isOpen: data.isOpen }),
+        ...(data.address !== undefined && { address: data.address }),
+        ...(data.phone !== undefined && { phone: data.phone }),
+        ...(data.tableCount !== undefined && { tableCount: data.tableCount }),
+        ...(data.costForTwo !== undefined && {
+          costForTwo: data.costForTwo,
+        }),
+        ...(data.description !== undefined && {
+          description: data.description,
+        }),
+      },
+    });
+  } catch (error) {
+    if (error.code === "P2025") {
+      throw new Error("Restaurant not found");
+    }
+    throw error;
   }
-
-  const restaurant = await prisma.restaurant.update({
-    where: { id },
-    data: {
-      ...(data.name !== undefined && { name: data.name }),
-      ...(data.tagline !== undefined && { tagline: data.tagline }),
-      ...(data.cuisine !== undefined && { cuisine: data.cuisine }),
-      ...(data.image !== undefined && { image: data.image }),
-      ...(data.logo !== undefined && { logo: data.logo }),
-      ...(data.openTime !== undefined && { openTime: data.openTime }),
-      ...(data.closeTime !== undefined && { closeTime: data.closeTime }),
-      ...(data.isOpen !== undefined && { isOpen: data.isOpen }),
-      ...(data.address !== undefined && { address: data.address }),
-      ...(data.phone !== undefined && { phone: data.phone }),
-      ...(data.tableCount !== undefined && { tableCount: data.tableCount }),
-      ...(data.costForTwo !== undefined && {
-        costForTwo: data.costForTwo,
-      }),
-      ...(data.description !== undefined && {
-        description: data.description,
-      }),
-    },
-  });
-
-  return restaurant;
 };
 
 // Delete Restaurant
 const deleteRestaurant = async (id) => {
-  const existingRestaurant = await prisma.restaurant.findUnique({
-    where: { id },
-  });
+  try {
+    await prisma.restaurant.delete({
+      where: { id },
+    });
 
-  if (!existingRestaurant) {
-    throw new Error("Restaurant not found");
+    return { id };
+  } catch (error) {
+    if (error.code === "P2025") {
+      throw new Error("Restaurant not found");
+    }
+    throw error;
   }
-
-  await prisma.restaurant.delete({
-    where: { id },
-  });
-
-  return {
-    id,
-  };
 };
 
 module.exports = {

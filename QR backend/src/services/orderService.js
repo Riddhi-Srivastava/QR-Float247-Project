@@ -70,19 +70,31 @@ const createOrder = async ({
     }
   }
 
-  // 4. Calculate subtotal
   let subtotal = 0;
-  let estimatedPrepTime = 0;
+  console.log(
+  "ORDER PRICING DEBUG:",
+  cart.items.map(item => ({
+    food: item.food.name,
+    price: item.food.price,
+    quantity: item.quantity,
+  }))
+);
 
-  for (const item of cart.items) {
-    subtotal +=
-      Number(item.food.price) * item.quantity;
+const prepTimes = cart.items.map(
+  (item) => Number(item.food.prepTime) || 0
+);
 
-    estimatedPrepTime = Math.max(
-      estimatedPrepTime,
-      item.food.prepTime
-    );
-  }
+for (const item of cart.items) {
+  subtotal +=
+    Number(item.food.price) * item.quantity;
+}
+
+const estimatedPrepTime = Math.ceil(
+  prepTimes.reduce(
+    (sum, time) => sum + time,
+    0
+  ) / prepTimes.length
+);
 
   // 5. Tax
   const tax = Number(

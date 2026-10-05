@@ -39,20 +39,18 @@ const getTables = async (restaurantId) => {
 };
 
 const updateTableStatus = async (id, status) => {
-  const table = await prisma.restaurantTable.findUnique({
-    where: { id },
-  });
-
-  if (!table) {
-    throw new Error("Table not found");
+  try {
+    return await prisma.restaurantTable.update({
+      where: { id },
+      data: { status },
+    });
+  } catch (error) {
+    if (error.code === "P2025") {
+      throw new Error("Table not found");
+    }
+    throw error;
   }
-
-  return await prisma.restaurantTable.update({
-    where: { id },
-    data: { status },
-  });
 };
-
 module.exports = {
   createTable,
   getTables,

@@ -4,7 +4,8 @@ import {
   Moon,
   Sun,
   Flame,
-  ShieldCheck
+  ShieldCheck,
+  ShoppingBasket
 } from 'lucide-react';
 import { TableInfo, Order } from '../../types/restaurant';
 
@@ -34,7 +35,9 @@ export const RestaurantHeader: React.FC<
   activeOrder,
   activeView,
   onOpenOrderTracker,
+  onOpenCart,
   onSwitchToAdminView,
+  cartItemCount,
   searchQuery,
   setSearchQuery,
   theme,
@@ -100,7 +103,7 @@ export const RestaurantHeader: React.FC<
               )}
             </div>
 
-            {/* RIGHT — Admin + Theme */}
+            {/* RIGHT — Tokri + Admin + Theme */}
             <div
               style={{
                 display: 'flex',
@@ -109,6 +112,23 @@ export const RestaurantHeader: React.FC<
                 flexShrink: 0
               }}
             >
+              {/* Your Tokri Button */}
+              <button
+                type="button"
+                className="tokri-button"
+                onClick={onOpenCart}
+                title="Open Your Tokri"
+              >
+                <ShoppingBasket size={16} />
+                <span>Your Tokri</span>
+
+                {cartItemCount > 0 && (
+                  <span className="tokri-badge">
+                    {cartItemCount}
+                  </span>
+                )}
+              </button>
+
               {/* Admin Panel Button */}
               <button
                 type="button"
@@ -293,6 +313,82 @@ export const RestaurantHeader: React.FC<
 
 
           /* ==========================================
+             YOUR TOKRI BUTTON
+             ========================================== */
+
+          .tokri-button {
+            position: relative;
+
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            gap: 7px;
+
+            min-height: 40px;
+            padding: 9px 15px;
+
+            border: none;
+            border-radius: 999px;
+
+            background: #F9C80E;
+            color: #502314;
+
+            font-size: 13px;
+            font-weight: 800;
+
+            font-family:
+              "Arial Rounded MT Bold",
+              "Trebuchet MS",
+              Arial,
+              sans-serif;
+
+            cursor: pointer;
+            white-space: nowrap;
+
+            box-shadow:
+              0 5px 14px rgba(249, 200, 14, 0.30);
+
+            transition:
+              transform 0.2s ease,
+              background 0.2s ease,
+              box-shadow 0.2s ease;
+          }
+
+          .tokri-button:hover {
+            background: #E5B800;
+
+            transform: translateY(-2px);
+
+            box-shadow:
+              0 8px 18px rgba(249, 200, 14, 0.40);
+          }
+
+          .tokri-button:active {
+            transform: translateY(0);
+          }
+
+          .tokri-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+
+            border-radius: 999px;
+
+            background: #D62300;
+            color: #FFFFFF;
+
+            font-size: 11px;
+            font-weight: 800;
+            line-height: 1;
+          }
+
+
+          /* ==========================================
              ADMIN PANEL BUTTON
              ========================================== */
 
@@ -419,6 +515,21 @@ export const RestaurantHeader: React.FC<
               height: 14px;
             }
 
+            .tokri-button {
+              min-height: 36px;
+
+              padding: 8px 11px;
+
+              font-size: 12px;
+
+              gap: 5px;
+            }
+
+            .tokri-button svg {
+              width: 14px;
+              height: 14px;
+            }
+
             .admin-panel-button {
               min-height: 36px;
 
@@ -467,6 +578,31 @@ export const RestaurantHeader: React.FC<
               min-width: 36px;
 
               padding: 0;
+            }
+
+            .tokri-button span:not(.tokri-badge) {
+              display: none;
+            }
+
+            .tokri-button {
+              width: 36px;
+              height: 36px;
+
+              min-width: 36px;
+
+              padding: 0;
+            }
+
+            .tokri-badge {
+              position: absolute;
+
+              top: -6px;
+              right: -6px;
+
+              min-width: 18px;
+              height: 18px;
+
+              font-size: 10px;
             }
 
             .admin-panel-button span {

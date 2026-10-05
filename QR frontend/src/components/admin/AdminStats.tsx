@@ -1,989 +1,433 @@
 import React, { useMemo, useState } from "react";
 
-
-
 import {
-
   DollarSign,
-
   ShoppingBag,
-
   TrendingUp,
-
   Clock,
-
   Flame,
-
   ArrowUpRight,
-
+  ArrowUp,
+  ArrowDown,
   Utensils,
-
   Trophy,
-
   CalendarDays,
-
   X,
-
   ChevronDown,
-
   Package,
-
 } from "lucide-react";
-
-
 
 import { Order, MenuItem } from "../../types/restaurant";
 
-
-
 interface AdminStatsProps {
-
   orders: Order[];
-
   menuItems: MenuItem[];
-
 }
-
-
 
 type DateFilter =
-
   | "all"
-
   | "today"
-
   | "yesterday"
-
   | "7days"
-
   | "30days"
-
   | "custom";
 
-
+type SortMode = "sales_desc" | "sales_asc";
 
 interface SalesItem {
-
   key: string;
-
   name: string;
-
   category: string;
-
   quantity: number;
-
   sales: number;
-
   image?: string;
-
   price: number;
-
 }
 
-
-
 export const AdminStats: React.FC<AdminStatsProps> = ({
-
   orders,
-
   menuItems,
-
 }) => {
-
   // =========================================================
-
   // DATE FILTER
-
   // =========================================================
 
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
 
+  const [customStartDate, setCustomStartDate] = useState("");
 
-  const [dateFilter, setDateFilter] =
+  const [customEndDate, setCustomEndDate] = useState("");
 
-    useState<DateFilter>("all");
+  const [showSalesModal, setShowSalesModal] = useState(false);
 
-
-
-  const [customStartDate, setCustomStartDate] =
-
-    useState("");
-
-
-
-  const [customEndDate, setCustomEndDate] =
-
-    useState("");
-
-
-
-  const [showSalesModal, setShowSalesModal] =
-
-    useState(false);
-
-
+  // Sort mode for the item-wise sales modal (UI only)
+  const [sortMode, setSortMode] = useState<SortMode>("sales_desc");
 
   // =========================================================
-
   // SAFE BACKEND DATA ACCESS
-
   // =========================================================
-
-
 
   const getOrderItems = (order: Order): any[] => {
-
     const backendOrder = order as any;
-
-
 
     return Array.isArray(backendOrder.items)
-
       ? backendOrder.items
-
       : [];
-
   };
-
-
 
   const getOrderDate = (order: Order): Date | null => {
-
     const backendOrder = order as any;
 
-
-
     if (!backendOrder.createdAt) {
-
       return null;
-
     }
 
+    const date = new Date(backendOrder.createdAt);
 
-
-    const date = new Date(
-
-      backendOrder.createdAt
-
-    );
-
-
-
-    return Number.isNaN(date.getTime())
-
-      ? null
-
-      : date;
-
+    return Number.isNaN(date.getTime()) ? null : date;
   };
 
-
-
   // =========================================================
-
   // DATE HELPERS
-
   // =========================================================
-
-
 
   const startOfDay = (date: Date) => {
-
     const result = new Date(date);
-
-
 
     result.setHours(0, 0, 0, 0);
 
-
-
     return result;
-
   };
 
-
-
   const endOfDay = (date: Date) => {
-
     const result = new Date(date);
-
-
 
     result.setHours(23, 59, 59, 999);
 
-
-
     return result;
-
   };
 
-
-
-  const isSameDay = (
-
-    first: Date,
-
-    second: Date
-
-  ) => {
-
+  const isSameDay = (first: Date, second: Date) => {
     return (
-
-      first.getFullYear() ===
-
-        second.getFullYear() &&
-
-      first.getMonth() ===
-
-        second.getMonth() &&
-
-      first.getDate() ===
-
-        second.getDate()
-
+      first.getFullYear() === second.getFullYear() &&
+      first.getMonth() === second.getMonth() &&
+      first.getDate() === second.getDate()
     );
-
   };
 
-
-
   // =========================================================
-
   // FILTER ORDERS
-
   // =========================================================
-
-
 
   const filteredOrders = useMemo(() => {
-
     if (dateFilter === "all") {
-
       return orders;
-
     }
-
-
 
     const now = new Date();
 
-
-
     if (dateFilter === "today") {
-
       return orders.filter((order) => {
-
         const orderDate = getOrderDate(order);
 
-
-
         if (!orderDate) {
-
           return false;
-
         }
-
-
 
         return isSameDay(orderDate, now);
-
       });
-
     }
-
-
 
     if (dateFilter === "yesterday") {
-
       const yesterday = new Date(now);
 
-
-
-      yesterday.setDate(
-
-        yesterday.getDate() - 1
-
-      );
-
-
+      yesterday.setDate(yesterday.getDate() - 1);
 
       return orders.filter((order) => {
-
         const orderDate = getOrderDate(order);
 
-
-
         if (!orderDate) {
-
           return false;
-
         }
 
-
-
-        return isSameDay(
-
-          orderDate,
-
-          yesterday
-
-        );
-
+        return isSameDay(orderDate, yesterday);
       });
-
     }
-
-
 
     if (dateFilter === "7days") {
-
       const start = new Date(now);
 
-
-
-      start.setDate(
-
-        start.getDate() - 6
-
-      );
-
-
+      start.setDate(start.getDate() - 6);
 
       const startDate = startOfDay(start);
-
       const endDate = endOfDay(now);
 
-
-
       return orders.filter((order) => {
-
         const orderDate = getOrderDate(order);
 
-
-
         if (!orderDate) {
-
           return false;
-
         }
 
-
-
-        return (
-
-          orderDate >= startDate &&
-
-          orderDate <= endDate
-
-        );
-
+        return orderDate >= startDate && orderDate <= endDate;
       });
-
     }
-
-
 
     if (dateFilter === "30days") {
-
       const start = new Date(now);
 
-
-
-      start.setDate(
-
-        start.getDate() - 29
-
-      );
-
-
+      start.setDate(start.getDate() - 29);
 
       const startDate = startOfDay(start);
-
       const endDate = endOfDay(now);
 
-
-
       return orders.filter((order) => {
-
         const orderDate = getOrderDate(order);
 
-
-
         if (!orderDate) {
-
           return false;
-
         }
 
-
-
-        return (
-
-          orderDate >= startDate &&
-
-          orderDate <= endDate
-
-        );
-
+        return orderDate >= startDate && orderDate <= endDate;
       });
-
     }
 
-
-
-    if (
-
-      dateFilter === "custom" &&
-
-      customStartDate
-
-    ) {
-
+    if (dateFilter === "custom" && customStartDate) {
       const start = startOfDay(
-
         new Date(`${customStartDate}T00:00:00`)
-
       );
-
-
 
       const end = customEndDate
-
-        ? endOfDay(
-
-            new Date(
-
-              `${customEndDate}T00:00:00`
-
-            )
-
-          )
-
+        ? endOfDay(new Date(`${customEndDate}T00:00:00`))
         : endOfDay(start);
 
-
-
       return orders.filter((order) => {
-
         const orderDate = getOrderDate(order);
 
-
-
         if (!orderDate) {
-
           return false;
-
         }
 
-
-
-        return (
-
-          orderDate >= start &&
-
-          orderDate <= end
-
-        );
-
+        return orderDate >= start && orderDate <= end;
       });
-
     }
-
-
 
     return orders;
-
-  }, [
-
-    orders,
-
-    dateFilter,
-
-    customStartDate,
-
-    customEndDate,
-
-  ]);
-
-
+  }, [orders, dateFilter, customStartDate, customEndDate]);
 
   // =========================================================
-
   // REAL SUMMARY DATA
-
   // =========================================================
-
-
 
   const totalRevenue = useMemo(() => {
-
     return filteredOrders.reduce(
-
-      (acc, order) =>
-
-        acc + Number(order.total || 0),
-
+      (acc, order) => acc + Number(order.total || 0),
       0
-
     );
-
   }, [filteredOrders]);
 
-
-
-  const totalOrdersCount =
-
-    filteredOrders.length;
-
-
+  const totalOrdersCount = filteredOrders.length;
 
   const avgOrderValue =
-
     totalOrdersCount > 0
-
-      ? Math.round(
-
-          totalRevenue /
-
-            totalOrdersCount
-
-        )
-
+      ? Math.round(totalRevenue / totalOrdersCount)
       : 0;
 
-
-
-  const completedOrders =
-
-    filteredOrders.filter(
-
-      (order) =>
-
-        String(order.status).toLowerCase() ===
-
-        "completed"
-
-    ).length;
-
-
+  const completedOrders = filteredOrders.filter(
+    (order) => String(order.status).toLowerCase() === "completed"
+  ).length;
 
   // =========================================================
-
   // REAL ITEM-WISE SALES
-
   // =========================================================
-
-
 
   const itemSales = useMemo<SalesItem[]>(() => {
-
-    const salesMap = new Map<
-
-      string,
-
-      SalesItem
-
-    >();
-
-
+    const salesMap = new Map<string, SalesItem>();
 
     filteredOrders.forEach((order) => {
-
       const items = getOrderItems(order);
 
-
-
       items.forEach((item) => {
-
-        const name =
-
-          String(item.name || "").trim();
-
-
+        const name = String(item.name || "").trim();
 
         if (!name) {
-
           return;
-
         }
 
+        const key = String(
+          item.foodId || item.id || name
+        ).toLowerCase();
 
+        const quantity = Number(item.quantity || 0);
 
-        const key =
-
-          String(
-
-            item.foodId ||
-
-              item.id ||
-
-              name
-
-          ).toLowerCase();
-
-
-
-        const quantity =
-
-          Number(item.quantity || 0);
-
-
-
-        const price =
-
-          Number(item.price || 0);
-
-
+        const price = Number(item.price || 0);
 
         if (quantity <= 0) {
-
           return;
-
         }
 
-
-
-        const existing =
-
-          salesMap.get(key);
-
-
+        const existing = salesMap.get(key);
 
         if (existing) {
-
           existing.quantity += quantity;
 
+          existing.sales += price * quantity;
 
-
-          existing.sales +=
-
-            price * quantity;
-
-
-
-          if (
-
-            !existing.image &&
-
-            item.image
-
-          ) {
-
+          if (!existing.image && item.image) {
             existing.image = item.image;
-
           }
-
         } else {
-
           salesMap.set(key, {
-
             key,
-
             name,
-
-            category:
-
-              String(
-
-                item.category || "Uncategorized"
-
-              ),
-
+            category: String(item.category || "Uncategorized"),
             quantity,
-
-            sales:
-
-              price * quantity,
-
-            image:
-
-              item.image || undefined,
-
+            sales: price * quantity,
+            image: item.image || undefined,
             price,
-
           });
-
         }
-
       });
-
     });
 
-
-
-    return Array.from(
-
-      salesMap.values()
-
-    ).sort(
-
-      (a, b) =>
-
-        b.quantity - a.quantity ||
-
-        b.sales - a.sales
-
+    return Array.from(salesMap.values()).sort(
+      (a, b) => b.quantity - a.quantity || b.sales - a.sales
     );
-
   }, [filteredOrders]);
 
-
-
   // =========================================================
-
   // TOP 5 ACTUAL BESTSELLERS
-
   // =========================================================
 
-
-
-  const topFiveItems =
-
-    itemSales.slice(0, 5);
-
-
+  const topFiveItems = itemSales.slice(0, 5);
 
   // =========================================================
+  // MODAL: PRICE SORTED LIST + SUMMARY (DISPLAY ONLY)
+  // =========================================================
 
+  const sortedSales = useMemo(() => {
+    const copy = [...itemSales];
+
+    copy.sort((a, b) =>
+      sortMode === "sales_desc"
+        ? b.sales - a.sales
+        : a.sales - b.sales
+    );
+
+    return copy;
+  }, [itemSales, sortMode]);
+
+  const itemsTotalQuantity = useMemo(
+    () => itemSales.reduce((acc, item) => acc + item.quantity, 0),
+    [itemSales]
+  );
+
+  const itemsTotalSales = useMemo(
+    () => itemSales.reduce((acc, item) => acc + item.sales, 0),
+    [itemSales]
+  );
+
+  // =========================================================
   // MENU IMAGE FALLBACK
-
   // =========================================================
 
-
-
-  const getItemImage = (
-
-    item: SalesItem
-
-  ) => {
-
+  const getItemImage = (item: SalesItem) => {
     if (item.image) {
-
       return item.image;
-
     }
 
-
-
-    const menuItem =
-
-      menuItems.find(
-
-        (menu) =>
-
-          String(menu.name)
-
-            .toLowerCase()
-
-            .trim() ===
-
-          item.name
-
-            .toLowerCase()
-
-            .trim()
-
-      );
-
-
+    const menuItem = menuItems.find(
+      (menu) =>
+        String(menu.name).toLowerCase().trim() ===
+        item.name.toLowerCase().trim()
+    );
 
     return menuItem?.image;
-
   };
 
-
-
   // =========================================================
-
   // DATE LABEL
-
   // =========================================================
-
-
 
   const dateLabel = (() => {
-
     switch (dateFilter) {
-
       case "today":
-
         return "Today";
 
-
-
       case "yesterday":
-
         return "Yesterday";
 
-
-
       case "7days":
-
         return "Last 7 Days";
 
-
-
       case "30days":
-
         return "Last 30 Days";
 
-
-
       case "custom":
-
-        if (
-
-          customStartDate &&
-
-          customEndDate
-
-        ) {
-
+        if (customStartDate && customEndDate) {
           return `${customStartDate} → ${customEndDate}`;
-
         }
-
-
 
         if (customStartDate) {
-
           return customStartDate;
-
         }
-
-
 
         return "Select Date";
 
-
-
       default:
-
         return "All Time";
-
     }
-
   })();
 
-
-
   // =========================================================
-
   // METRICS
-
   // =========================================================
-
-
 
   const metrics = [
-
     {
-
       title: "Total Sales",
-
-      value: `₹${totalRevenue.toLocaleString(
-
-        "en-IN"
-
-      )}`,
-
+      value: `₹${totalRevenue.toLocaleString("en-IN")}`,
       subtitle: "Click to view item-wise sales",
-
       icon: DollarSign,
-
       accent: "#d62300",
-
       soft: "#fff0eb",
-
       clickable: true,
-
     },
-
     {
-
       title: "Total Orders",
-
-      value:
-
-        totalOrdersCount.toLocaleString(
-
-          "en-IN"
-
-        ),
-
+      value: totalOrdersCount.toLocaleString("en-IN"),
       subtitle: dateLabel,
-
       icon: ShoppingBag,
-
       accent: "#b8860b",
-
       soft: "#fff7df",
-
       clickable: false,
-
     },
-
     {
-
       title: "Average Order",
-
-      value: `₹${avgOrderValue.toLocaleString(
-
-        "en-IN"
-
-      )}`,
-
+      value: `₹${avgOrderValue.toLocaleString("en-IN")}`,
       subtitle: "Based on filtered orders",
-
       icon: TrendingUp,
-
       accent: "#00843d",
-
       soft: "#edf8f1",
-
       clickable: false,
-
     },
-
     {
-
       title: "Completed",
-
-      value:
-
-        completedOrders.toLocaleString(
-
-          "en-IN"
-
-        ),
-
+      value: completedOrders.toLocaleString("en-IN"),
       subtitle: "Completed orders",
-
       icon: Clock,
-
       accent: "#6b3f2e",
-
       soft: "#f4ebe6",
-
       clickable: false,
-
     },
-
   ];
 
-
-
   // =========================================================
-
   // UI
-
   // =========================================================
-
-
 
   return (
-
     <div className="bk-stats-page">
-
       <style>{`
         * { box-sizing: border-box; }
 
@@ -1168,6 +612,8 @@ export const AdminStats: React.FC<AdminStatsProps> = ({
           transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
         }
 
+        .bk-metric-card.clickable { cursor: pointer; }
+
         .bk-metric-card::before {
           content: "";
           position: absolute;
@@ -1271,359 +717,328 @@ export const AdminStats: React.FC<AdminStatsProps> = ({
         .bk-empty-title { color: #3a2118; font-size: 12px; font-weight: 950; }
         .bk-empty-text { max-width: 270px; color: #9a867c; font-size: 10px; font-weight: 600; line-height: 1.55; }
 
-        .bk-modal-overlay { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 18px; background: rgba(28,13,8,.60); backdrop-filter: blur(8px); animation: bkFade .18s ease; }
+        /* =========================================================
+           SALES BREAKDOWN MODAL
+        ========================================================= */
+
+        .bk-modal-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 18px;
+          background: rgba(28,13,8,.60);
+          backdrop-filter: blur(8px);
+          animation: bkFade .18s ease;
+        }
         @keyframes bkFade { from { opacity: 0; } to { opacity: 1; } }
+
         .bk-modal {
-  width: min(860px, 100%);
-  max-height: 88vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-
-  border: 1px solid rgba(214,35,0,.12);
-  border-radius: 26px;
-
-  background: #fffaf7;
-
-  box-shadow:
-    0 35px 100px rgba(36,18,13,.30),
-    0 8px 30px rgba(214,35,0,.08);
-
-  animation: bkModal .22s ease;
-}
-
-@keyframes bkModal {
-  from {
-    transform: translateY(14px) scale(.985);
-    opacity: .7;
-  }
-
-  to {
-    transform: translateY(0) scale(1);
-    opacity: 1;
-  }
-}
-
-
-/* =========================
-   MODAL HEADER
-========================= */
-
-.bk-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-
-  padding: 20px 22px;
-
-  background:
-    radial-gradient(
-      circle at 90% 0%,
-      rgba(246,196,0,.22),
-      transparent 24%
-    ),
-    linear-gradient(
-      135deg,
-      #21100b 0%,
-      #421d12 55%,
-      #6b2b18 100%
-    );
-
-  color: #fff;
-}
-
-.bk-modal-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  min-width: 0;
-}
-
-.bk-modal-icon {
-  width: 46px;
-  height: 46px;
-  flex: 0 0 46px;
-
-  display: grid;
-  place-items: center;
-
-  border-radius: 14px;
-
-  background:
-    linear-gradient(
-      145deg,
-      #ffbf18,
-      #ef7d00 45%,
-      #d62300
-    );
-
-  color: #fff;
-
-  box-shadow:
-    0 8px 22px rgba(214,35,0,.30),
-    inset 0 1px 0 rgba(255,255,255,.25);
-}
-
-.bk-modal-title {
-  margin: 0;
-
-  font-size: 17px;
-  line-height: 1.15;
-  font-weight: 950;
-  letter-spacing: -.3px;
-}
-
-.bk-modal-subtitle {
-  margin: 5px 0 0;
-
-  color: #e6d4cb;
-
-  font-size: 9px;
-  font-weight: 700;
-}
-
-
-/* =========================
-   CLOSE BUTTON
-========================= */
-
-.bk-close {
-  width: 38px;
-  height: 38px;
-  flex: 0 0 38px;
-
-  border: 1px solid rgba(255,255,255,.16);
-  border-radius: 11px;
-
-  display: grid;
-  place-items: center;
-
-  background: rgba(255,255,255,.09);
-  color: #fff;
-
-  cursor: pointer;
-
-  transition:
-    background .18s ease,
-    transform .18s ease,
-    border-color .18s ease;
-}
-
-.bk-close:hover {
-  background: #d62300;
-  border-color: #ffbf18;
-  transform: scale(1.05);
-}
-
-
-/* =========================
-   MODAL BODY
-========================= */
-
-.bk-modal-body {
-  overflow-y: auto;
-  padding: 12px 15px 16px;
-
-  background:
-    linear-gradient(
-      180deg,
-      #fffaf7 0%,
-      #fff 100%
-    );
-}
-
-.bk-modal-body::-webkit-scrollbar {
-  width: 7px;
-}
-
-.bk-modal-body::-webkit-scrollbar-track {
-  background: #f7eee9;
-  border-radius: 99px;
-}
-
-.bk-modal-body::-webkit-scrollbar-thumb {
-  border-radius: 99px;
-  background: linear-gradient(
-    180deg,
-    #d62300,
-    #ef7d00
-  );
-}
-
-
-/* =========================
-   SALES ROW
-========================= */
-
-.bk-sales-row {
-  position: relative;
-
-  display: grid;
-
-  grid-template-columns:
-    42px
-    minmax(0, 1fr)
-    100px
-    135px;
-
-  align-items: center;
-
-  gap: 15px;
-
-  margin-bottom: 7px;
-  padding: 13px 12px;
-
-  border: 1px solid #f0e3dc;
-  border-radius: 15px;
-
-  background: #fff;
-
-  box-shadow:
-    0 3px 12px rgba(55,27,17,.035);
-
-  transition:
-    transform .18s ease,
-    border-color .18s ease,
-    box-shadow .18s ease,
-    background .18s ease;
-}
-
-.bk-sales-row:hover {
-  transform: translateY(-2px);
-
-  border-color: rgba(214,35,0,.18);
-
-  background:
-    linear-gradient(
-      90deg,
-      #fff9f5,
-      #fff
-    );
-
-  box-shadow:
-    0 8px 22px rgba(55,27,17,.08);
-}
-
-.bk-sales-row:last-child {
-  margin-bottom: 0;
-}
-
-
-/* =========================
-   RANK
-========================= */
-
-.bk-sales-row-rank {
-  width: 32px;
-  height: 32px;
-
-  display: grid;
-  place-items: center;
-
-  border-radius: 10px;
-
-  background:
-    linear-gradient(
-      145deg,
-      #fff0eb,
-      #fff7df
-    );
-
-  color: #d62300;
-
-  font-size: 8px;
-  font-weight: 950;
-
-  border: 1px solid rgba(214,35,0,.08);
-}
-
-
-/* =========================
-   ITEM NAME
-========================= */
-
-.bk-sales-row-name {
-  overflow: hidden;
-
-  color: #2b160e;
-
-  font-size: 12px;
-  font-weight: 950;
-
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.bk-sales-row-category {
-  margin-top: 4px;
-
-  color: #9a867c;
-
-  font-size: 8px;
-  font-weight: 800;
-
-  letter-spacing: .35px;
-  text-transform: uppercase;
-}
-
-
-/* =========================
-   QUANTITY
-========================= */
-
-.bk-sales-row-qty,
-.bk-sales-row-total {
-  text-align: right;
-}
-
-.bk-sales-row-label {
-  color: #a18d83;
-
-  font-size: 7px;
-  font-weight: 900;
-
-  letter-spacing: .7px;
-  text-transform: uppercase;
-}
-
-.bk-sales-row-value {
-  margin-top: 4px;
-
-  color: #24120d;
-
-  font-size: 14px;
-  font-weight: 950;
-}
-
-
-/* =========================
-   TOTAL SALES
-========================= */
-
-.bk-sales-row-total {
-  padding: 7px 10px;
-
-  border-radius: 11px;
-
-  background:
-    linear-gradient(
-      135deg,
-      #fff0eb,
-      #fff7f2
-    );
-
-  border: 1px solid rgba(214,35,0,.08);
-}
-
-.bk-sales-row-total .bk-sales-row-value {
-  color: #d62300;
-
-  font-size: 14px;
-  font-weight: 950;
-}
-        
-        
+          width: min(820px, 100%);
+          max-height: 88vh;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          border: 1px solid rgba(214,35,0,.12);
+          border-radius: 26px;
+          background: #fffaf7;
+          box-shadow: 0 35px 100px rgba(36,18,13,.30), 0 8px 30px rgba(214,35,0,.08);
+          animation: bkModal .22s ease;
+        }
+        @keyframes bkModal {
+          from { transform: translateY(14px) scale(.985); opacity: .7; }
+          to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        /* ---------- header ---------- */
+
+        .bk-modal-header {
+          flex: 0 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          padding: 20px 22px;
+          background:
+            radial-gradient(circle at 90% 0%, rgba(246,196,0,.22), transparent 24%),
+            linear-gradient(135deg, #21100b 0%, #421d12 55%, #6b2b18 100%);
+          color: #fff;
+        }
+
+        .bk-modal-title-wrap { display: flex; align-items: center; gap: 13px; min-width: 0; }
+
+        .bk-modal-icon {
+          width: 46px;
+          height: 46px;
+          flex: 0 0 46px;
+          display: grid;
+          place-items: center;
+          border-radius: 14px;
+          background: linear-gradient(145deg, #ffbf18, #ef7d00 45%, #d62300);
+          color: #fff;
+          box-shadow: 0 8px 22px rgba(214,35,0,.30), inset 0 1px 0 rgba(255,255,255,.25);
+        }
+
+        .bk-stats-page .bk-modal-title {
+          margin: 0;
+          color: #ffffff !important;
+          font-size: 18px;
+          line-height: 1.15;
+          font-weight: 950;
+          letter-spacing: -.3px;
+        }
+
+        .bk-stats-page .bk-modal-subtitle {
+          margin: 5px 0 0;
+          color: #f0dccf !important;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: .2px;
+        }
+
+        .bk-close {
+          width: 38px;
+          height: 38px;
+          flex: 0 0 38px;
+          border: 1px solid rgba(255,255,255,.16);
+          border-radius: 11px;
+          display: grid;
+          place-items: center;
+          background: rgba(255,255,255,.09);
+          color: #fff;
+          cursor: pointer;
+          transition: background .18s ease, transform .18s ease, border-color .18s ease;
+        }
+        .bk-close:hover { background: #d62300; border-color: #ffbf18; transform: scale(1.05); }
+
+        /* ---------- summary strip ---------- */
+
+        .bk-modal-summary {
+          flex: 0 0 auto;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+          padding: 14px 18px 4px;
+          background: #fffaf7;
+        }
+
+        .bk-summary-card {
+          min-width: 0;
+          padding: 11px 13px;
+          border-radius: 14px;
+          border: 1px solid transparent;
+        }
+        .bk-summary-card.items { background: #f4ebe6; border-color: #e6d5cb; }
+        .bk-summary-card.qty { background: #fff6dc; border-color: #f3dc8f; }
+        .bk-summary-card.sales { background: #eaf7ef; border-color: #bfe3cc; }
+
+        .bk-summary-label {
+          font-size: 9px;
+          font-weight: 900;
+          letter-spacing: .6px;
+          text-transform: uppercase;
+        }
+        .bk-summary-card.items .bk-summary-label { color: #7a5645; }
+        .bk-summary-card.qty .bk-summary-label { color: #9a6b00; }
+        .bk-summary-card.sales .bk-summary-label { color: #2f7a4f; }
+
+        .bk-summary-value {
+          margin-top: 4px;
+          font-size: 20px;
+          line-height: 1.1;
+          font-weight: 950;
+          letter-spacing: -.5px;
+        }
+        .bk-summary-card.items .bk-summary-value { color: #4a2a1c; }
+        .bk-summary-card.qty .bk-summary-value { color: #5c3d00; }
+        .bk-summary-card.sales .bk-summary-value { color: #0b6b36; }
+
+        /* ---------- sort toolbar ---------- */
+
+        .bk-sort-bar {
+          flex: 0 0 auto;
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
+          padding: 10px 18px 12px;
+          border-bottom: 1px solid #f0e3dc;
+          background: #fffaf7;
+        }
+
+        .bk-sort-label {
+          margin-right: 2px;
+          color: #8a6f62;
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: .5px;
+          text-transform: uppercase;
+        }
+
+        .bk-sort-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          height: 34px;
+          padding: 0 13px;
+          border: 1px solid #eaded7;
+          border-radius: 999px;
+          background: #fff;
+          color: #5a3a2c;
+          font-size: 11px;
+          font-weight: 900;
+          cursor: pointer;
+          transition: background .18s ease, color .18s ease, border-color .18s ease, box-shadow .18s ease;
+        }
+        .bk-sort-btn:hover { border-color: rgba(214,35,0,.35); color: #d62300; }
+        .bk-sort-btn.active {
+          background: linear-gradient(135deg, #d62300, #ef7d00);
+          border-color: transparent;
+          color: #fff;
+          box-shadow: 0 6px 16px rgba(214,35,0,.25);
+        }
+
+        /* ---------- list ---------- */
+
+        .bk-modal-body {
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow-y: auto;
+          padding: 12px 18px 18px;
+          background: linear-gradient(180deg, #fffaf7 0%, #fff 100%);
+        }
+        .bk-modal-body::-webkit-scrollbar { width: 7px; }
+        .bk-modal-body::-webkit-scrollbar-track { background: #f7eee9; border-radius: 99px; }
+        .bk-modal-body::-webkit-scrollbar-thumb { border-radius: 99px; background: linear-gradient(180deg, #d62300, #ef7d00); }
+
+        .bk-sales-row {
+          display: grid;
+          grid-template-columns: 34px 52px minmax(0, 1fr) auto;
+          align-items: center;
+          gap: 14px;
+          margin-bottom: 9px;
+          padding: 12px 14px;
+          border: 1px solid #f0e3dc;
+          border-radius: 18px;
+          background: #fff;
+          box-shadow: 0 3px 12px rgba(55,27,17,.035);
+          transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+        }
+        .bk-sales-row:hover {
+          transform: translateY(-2px);
+          border-color: rgba(214,35,0,.18);
+          box-shadow: 0 10px 24px rgba(55,27,17,.08);
+        }
+        .bk-sales-row:last-child { margin-bottom: 0; }
+
+        .bk-sales-row-rank {
+          width: 34px;
+          height: 34px;
+          display: grid;
+          place-items: center;
+          border-radius: 11px;
+          background: linear-gradient(145deg, #fff0eb, #fff7df);
+          border: 1px solid rgba(214,35,0,.10);
+          color: #d62300;
+          font-size: 10px;
+          font-weight: 950;
+        }
+
+        .bk-sales-row-img {
+          width: 52px;
+          height: 52px;
+          overflow: hidden;
+          border-radius: 14px;
+          border: 1px solid #eaded7;
+          background: #f7eee9;
+        }
+        .bk-sales-row-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .bk-sales-row-img .bk-food-placeholder { color: #b69c8e; }
+
+        .bk-sales-row-info { min-width: 0; }
+
+        .bk-sales-row-name {
+          overflow: hidden;
+          color: #2b160e;
+          font-size: 14px;
+          font-weight: 950;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+
+        .bk-sales-row-category {
+          margin-top: 4px;
+          color: #8f7a70;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: .3px;
+          text-transform: uppercase;
+        }
+
+        .bk-share {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 8px;
+        }
+        .bk-share-track {
+          flex: 1;
+          height: 6px;
+          overflow: hidden;
+          border-radius: 99px;
+          background: #f5ebe5;
+        }
+        .bk-share-fill {
+          height: 100%;
+          border-radius: 99px;
+          background: linear-gradient(90deg, #f6c400, #ef7d00, #d62300);
+        }
+        .bk-share-text {
+          min-width: 58px;
+          color: #8f7a70;
+          font-size: 10px;
+          font-weight: 800;
+          text-align: right;
+        }
+
+        .bk-sales-row-boxes {
+          display: flex;
+          align-items: stretch;
+          gap: 8px;
+        }
+
+        .bk-box {
+          min-width: 92px;
+          padding: 9px 13px;
+          border-radius: 13px;
+          border: 1px solid transparent;
+          text-align: center;
+        }
+        .bk-box-qty { background: #fff6dc; border-color: #f3dc8f; }
+        .bk-box-sales { min-width: 118px; background: #eaf7ef; border-color: #bfe3cc; }
+
+        .bk-box-label {
+          font-size: 9px;
+          font-weight: 900;
+          letter-spacing: .6px;
+          text-transform: uppercase;
+        }
+        .bk-box-qty .bk-box-label { color: #9a6b00; }
+        .bk-box-sales .bk-box-label { color: #2f7a4f; }
+
+        .bk-box-value {
+          margin-top: 4px;
+          font-size: 18px;
+          line-height: 1.1;
+          font-weight: 950;
+          letter-spacing: -.3px;
+        }
+        .bk-box-qty .bk-box-value { color: #5c3d00; }
+        .bk-box-sales .bk-box-value { color: #0b6b36; }
+
+        /* ---------- responsive ---------- */
 
         @media (max-width: 1120px) {
           .bk-metrics-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
@@ -1646,11 +1061,29 @@ export const AdminStats: React.FC<AdminStatsProps> = ({
           .bk-sales-mini-grid { grid-template-columns: repeat(2,1fr); }
           .bk-sales-number { font-size: 30px; }
           .bk-panel-header { padding: 14px; }
+
           .bk-modal-overlay { padding: 10px; }
           .bk-modal { max-height: 92vh; border-radius: 20px; }
-          .bk-sales-row { grid-template-columns: 34px minmax(0,1fr); gap: 9px; }
-          .bk-sales-row-qty, .bk-sales-row-total { grid-column: 2; text-align: left; }
-          .bk-sales-row-total { margin-top: -4px; }
+          .bk-modal-header { padding: 16px; }
+          .bk-modal-summary { padding: 12px 12px 4px; gap: 8px; }
+          .bk-summary-card { padding: 9px 10px; }
+          .bk-summary-value { font-size: 16px; }
+          .bk-sort-bar { padding: 10px 12px; }
+          .bk-modal-body { padding: 10px 12px 14px; }
+
+          .bk-sales-row {
+            grid-template-columns: 30px 46px minmax(0, 1fr);
+            gap: 10px;
+            padding: 11px;
+          }
+          .bk-sales-row-rank { width: 30px; height: 30px; font-size: 9px; }
+          .bk-sales-row-img { width: 46px; height: 46px; }
+          .bk-sales-row-boxes {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+          }
+          .bk-box, .bk-box-sales { min-width: 0; }
         }
         @media (max-width: 430px) {
           .bk-title-wrap { gap: 9px; }
@@ -1664,701 +1097,424 @@ export const AdminStats: React.FC<AdminStatsProps> = ({
           .bk-mini-value { font-size: 17px; }
           .bk-food-image { width: 47px; height: 47px; flex-basis: 47px; }
           .bk-best-body { padding-left: 8px; padding-right: 8px; }
+          .bk-summary-label { font-size: 8px; }
+          .bk-sort-btn { font-size: 10px; padding: 0 11px; }
         }
-`}</style>
-
-
-
-
-
-
+      `}</style>
 
       {/* =====================================================
-
           DATE FILTER
-
       ===================================================== */}
-
-
 
       <div className="bk-filter-bar">
-
         <div className="bk-filter-title">
-
           <CalendarDays size={15} />
-
           Order Date
-
         </div>
-
-
 
         <div className="bk-filter-select">
-
           <select
-
             value={dateFilter}
-
             onChange={(event) =>
-
-              setDateFilter(
-
-                event.target.value as DateFilter
-
-              )
-
+              setDateFilter(event.target.value as DateFilter)
             }
-
           >
-
-            <option value="all">
-
-              All Time
-
-            </option>
-
-
-
-            <option value="today">
-
-              Today
-
-            </option>
-
-
-
-            <option value="yesterday">
-
-              Yesterday
-
-            </option>
-
-
-
-            <option value="7days">
-
-              Last 7 Days
-
-            </option>
-
-
-
-            <option value="30days">
-
-              Last 30 Days
-
-            </option>
-
-
-
-            <option value="custom">
-
-              Custom Date / Range
-
-            </option>
-
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+            <option value="7days">Last 7 Days</option>
+            <option value="30days">Last 30 Days</option>
+            <option value="custom">Custom Date / Range</option>
           </select>
 
-
-
           <ChevronDown size={14} />
-
         </div>
-
-
 
         {dateFilter === "custom" && (
-
           <>
-
             <input
-
               type="date"
-
               className="bk-date-input"
-
               value={customStartDate}
-
-              onChange={(e) =>
-
-                setCustomStartDate(e.target.value)
-
-              }
-
+              onChange={(e) => setCustomStartDate(e.target.value)}
               placeholder="Start Date"
-
             />
-
             <input
-
               type="date"
-
               className="bk-date-input"
-
               value={customEndDate}
-
-              onChange={(e) =>
-
-                setCustomEndDate(e.target.value)
-
-              }
-
+              onChange={(e) => setCustomEndDate(e.target.value)}
               placeholder="End Date"
-
             />
-
           </>
-
         )}
 
-
-
         <div className="bk-filter-result">
-
           {filteredOrders.length} orders found
-
         </div>
-
       </div>
 
-
-
       {/* =====================================================
-
           METRICS GRID
-
       ===================================================== */}
-
-
 
       <div className="bk-metrics-grid">
-
         {metrics.map((metric, idx) => {
-
           const Icon = metric.icon;
 
-
-
           return (
-
             <div
-
               key={idx}
-
               className={`bk-metric-card ${
-
                 metric.clickable ? "clickable" : ""
-
               }`}
-
               onClick={() => {
-
                 if (metric.clickable) {
-
                   setShowSalesModal(true);
-
                 }
-
               }}
-
             >
-
               <div className="bk-metric-top">
-
                 <div
-
                   className="bk-metric-icon"
-
                   style={{
-
                     background: metric.soft,
-
                     color: metric.accent,
-
                   }}
-
                 >
-
                   <Icon size={20} strokeWidth={2.5} />
-
                 </div>
-
-
 
                 {metric.clickable && (
-
                   <div className="bk-arrow">
-
                     <ArrowUpRight size={16} />
-
                   </div>
-
                 )}
-
               </div>
 
+              <div className="bk-metric-title">{metric.title}</div>
 
+              <div className="bk-metric-value">{metric.value}</div>
 
-              <div className="bk-metric-title">
-
-                {metric.title}
-
-              </div>
-
-
-
-              <div className="bk-metric-value">
-
-                {metric.value}
-
-              </div>
-
-
-
-              <div className="bk-metric-subtitle">
-
-                {metric.subtitle}
-
-              </div>
-
+              <div className="bk-metric-subtitle">{metric.subtitle}</div>
             </div>
-
           );
-
         })}
-
       </div>
 
-
-
       {/* =====================================================
-
           CONTENT GRID (SALES SUMMARY & BESTSELLERS)
-
       ===================================================== */}
-
-
 
       <div className="bk-content-grid">
-
         {/* Revenue & Overview Panel */}
-
         <div className="bk-panel">
-
           <div className="bk-panel-header">
-
             <div className="bk-panel-title-wrap">
-
               <div className="bk-panel-icon">
-
                 <DollarSign size={18} strokeWidth={2.6} />
-
               </div>
-
               <div>
-
-                <h3 className="bk-panel-title">
-
-                  Revenue & Volume
-
-                </h3>
-
+                <h3 className="bk-panel-title">Revenue & Volume</h3>
                 <p className="bk-panel-description">
-
                   Financial performance metrics
-
                 </p>
-
               </div>
-
             </div>
-
-            <div className="bk-panel-badge">
-
-              {dateLabel}
-
-            </div>
-
+            <div className="bk-panel-badge">{dateLabel}</div>
           </div>
-
-
 
           <div className="bk-sales-body">
-
             <div className="bk-sales-highlight">
-
               <div className="bk-sales-label">
-
                 <DollarSign size={13} /> Total Revenue Generated
-
               </div>
-
               <div className="bk-sales-number">
-
                 ₹{totalRevenue.toLocaleString("en-IN")}
-
               </div>
-
               <div className="bk-sales-note">
-
-                Aggregated from {totalOrdersCount} valid orders in the selected period.
-
+                Aggregated from {totalOrdersCount} valid orders in the
+                selected period.
               </div>
-
             </div>
-
-
 
             <div className="bk-sales-mini-grid">
-
               <div className="bk-mini-card">
-
                 <div className="bk-mini-label">Total Volume</div>
-
                 <div className="bk-mini-value">
-
-                  {totalOrdersCount} <span style={{ fontSize: "12px", color: "#806c61" }}>orders</span>
-
+                  {totalOrdersCount}{" "}
+                  <span style={{ fontSize: "12px", color: "#806c61" }}>
+                    orders
+                  </span>
                 </div>
-
               </div>
-
               <div className="bk-mini-card">
-
                 <div className="bk-mini-label">Success Rate</div>
-
-                <div className="bk-mini-value" style={{ color: "#00843d" }}>
-
+                <div
+                  className="bk-mini-value"
+                  style={{ color: "#00843d" }}
+                >
                   {totalOrdersCount > 0
-
-                    ? `${Math.round((completedOrders / totalOrdersCount) * 100)}%`
-
+                    ? `${Math.round(
+                        (completedOrders / totalOrdersCount) * 100
+                      )}%`
                     : "0%"}
-
                 </div>
-
               </div>
-
             </div>
-
           </div>
-
         </div>
-
-
 
         {/* Bestsellers Panel */}
-
         <div className="bk-panel">
-
           <div className="bk-panel-header">
-
             <div className="bk-panel-title-wrap">
-
               <div className="bk-panel-icon">
-
                 <Trophy size={18} strokeWidth={2.6} />
-
               </div>
-
               <div>
-
-                <h3 className="bk-panel-title">
-
-                  Top Bestsellers
-
-                </h3>
-
+                <h3 className="bk-panel-title">Top Bestsellers</h3>
                 <p className="bk-panel-description">
-
                   Most ordered menu items
-
                 </p>
-
               </div>
-
             </div>
-
             <Flame size={18} className="bk-hot-icon" />
-
           </div>
-
-
 
           <div className="bk-best-body">
-
             {topFiveItems.length > 0 ? (
-
               topFiveItems.map((item, index) => {
-
                 const img = getItemImage(item);
 
-
-
                 return (
-
                   <div key={item.key} className="bk-best-item">
-
-                    <div className="bk-rank">
-
-                      #{index + 1}
-
-                    </div>
-
-
+                    <div className="bk-rank">#{index + 1}</div>
 
                     <div className="bk-food-image">
-
                       {img ? (
-
                         <img src={img} alt={item.name} />
-
                       ) : (
-
                         <div className="bk-food-placeholder">
-
                           <Utensils size={18} />
-
                         </div>
-
                       )}
-
                     </div>
-
-
 
                     <div className="bk-food-info">
-
                       <div className="bk-food-name" title={item.name}>
-
                         {item.name}
-
                       </div>
-
-                      <div className="bk-food-meta">
-
-                        {item.category}
-
-                      </div>
-
+                      <div className="bk-food-meta">{item.category}</div>
                       <div className="bk-food-sales">
-
                         <span className="bk-sales-pill">
-
                           Qty: {item.quantity}
-
                         </span>
-
                         <span className="bk-amount-pill">
-
                           ₹{item.sales.toLocaleString("en-IN")}
-
                         </span>
-
                       </div>
-
                     </div>
-
                   </div>
-
                 );
-
               })
-
             ) : (
-
               <div className="bk-empty">
-
                 <div className="bk-empty-icon">
-
                   <Package size={22} />
-
                 </div>
-
-                <div className="bk-empty-title">
-
-                  No Sales Found
-
-                </div>
-
+                <div className="bk-empty-title">No Sales Found</div>
                 <div className="bk-empty-text">
-
-                  There are no recorded food sales matching the selected date filter criteria.
-
+                  There are no recorded food sales matching the selected
+                  date filter criteria.
                 </div>
-
               </div>
-
             )}
-
           </div>
-
         </div>
-
       </div>
 
-
-
       {/* =====================================================
-
           SALES BREAKDOWN MODAL
-
       ===================================================== */}
 
-
-
       {showSalesModal && (
-
-        <div className="bk-modal-overlay" onClick={() => setShowSalesModal(false)}>
-
-          <div className="bk-modal" onClick={(e) => e.stopPropagation()}>
-
+        <div
+          className="bk-modal-overlay"
+          onClick={() => setShowSalesModal(false)}
+        >
+          <div
+            className="bk-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
             <div className="bk-modal-header">
-
               <div className="bk-modal-title-wrap">
-
                 <div className="bk-modal-icon">
-
                   <DollarSign size={20} />
-
                 </div>
 
                 <div>
-
                   <h3 className="bk-modal-title">
-
                     Item-Wise Sales Breakdown
-
                   </h3>
 
                   <p className="bk-modal-subtitle">
-
-                    ITEMS WISE SALES BREAKDOWN FOR {dateLabel.toLowerCase()}
-
+                    {dateLabel} &nbsp;•&nbsp; {itemSales.length}{" "}
+                    {itemSales.length === 1 ? "item" : "items"} sold
                   </p>
-
                 </div>
-
               </div>
 
-
-
               <button
-
                 className="bk-close"
-
                 onClick={() => setShowSalesModal(false)}
-
+                aria-label="Close"
               >
-
                 <X size={18} />
-
               </button>
-
             </div>
 
-
-
-            <div className="bk-modal-body">
-
-              {itemSales.length > 0 ? (
-
-                itemSales.map((item, idx) => (
-
-                  <div key={item.key} className="bk-sales-row">
-
-                    <div className="bk-sales-row-rank">
-
-                      #{idx + 1}
-
-                    </div>
-
-
-
-                    <div>
-
-                      <div className="bk-sales-row-name">
-
-                        {item.name}
-
-                      </div>
-
-                      <div className="bk-sales-row-category">
-
-                        {item.category} • ₹{item.price} each
-
-                      </div>
-
-                    </div>
-
-
-
-                    <div className="bk-sales-row-qty">
-
-                      <div className="bk-sales-row-label">Quantity</div>
-
-                      <div className="bk-sales-row-value">
-
-                        {item.quantity}
-
-                      </div>
-
-                    </div>
-
-
-
-                    <div className="bk-sales-row-total">
-
-                      <div className="bk-sales-row-label">Total Sales</div>
-
-                      <div className="bk-sales-row-value">
-
-                        ₹{item.sales.toLocaleString("en-IN")}
-
-                      </div>
-
-                    </div>
-
+            {/* Summary */}
+            {itemSales.length > 0 && (
+              <div className="bk-modal-summary">
+                <div className="bk-summary-card items">
+                  <div className="bk-summary-label">Dishes</div>
+                  <div className="bk-summary-value">
+                    {itemSales.length}
                   </div>
-
-                ))
-
-              ) : (
-
-                <div className="bk-empty">
-
-                  <div className="bk-empty-icon">
-
-                    <Package size={22} />
-
-                  </div>
-
-                  <div className="bk-empty-title">
-
-                    No Item Records
-
-                  </div>
-
-                  <div className="bk-empty-text">
-
-                    No items found for the selected time range.
-
-                  </div>
-
                 </div>
 
+                <div className="bk-summary-card qty">
+                  <div className="bk-summary-label">Total Quantity</div>
+                  <div className="bk-summary-value">
+                    {itemsTotalQuantity.toLocaleString("en-IN")}
+                  </div>
+                </div>
+
+                <div className="bk-summary-card sales">
+                  <div className="bk-summary-label">Total Sales</div>
+                  <div className="bk-summary-value">
+                    ₹{itemsTotalSales.toLocaleString("en-IN")}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sort toolbar */}
+            {itemSales.length > 0 && (
+              <div className="bk-sort-bar">
+                <span className="bk-sort-label">Sort by price</span>
+
+                <button
+                  type="button"
+                  className={`bk-sort-btn ${
+                    sortMode === "sales_desc" ? "active" : ""
+                  }`}
+                  onClick={() => setSortMode("sales_desc")}
+                >
+                  <ArrowDown size={14} />
+                  High to Low
+                </button>
+
+                <button
+                  type="button"
+                  className={`bk-sort-btn ${
+                    sortMode === "sales_asc" ? "active" : ""
+                  }`}
+                  onClick={() => setSortMode("sales_asc")}
+                >
+                  <ArrowUp size={14} />
+                  Low to High
+                </button>
+              </div>
+            )}
+
+            {/* List */}
+            <div className="bk-modal-body">
+              {sortedSales.length > 0 ? (
+                sortedSales.map((item, idx) => {
+                  const img = getItemImage(item);
+
+                  const sharePercent =
+                    itemsTotalSales > 0
+                      ? Math.round((item.sales / itemsTotalSales) * 100)
+                      : 0;
+
+                  return (
+                    <div key={item.key} className="bk-sales-row">
+                      <div className="bk-sales-row-rank">#{idx + 1}</div>
+
+                      <div className="bk-sales-row-img">
+                        {img ? (
+                          <img src={img} alt={item.name} />
+                        ) : (
+                          <div className="bk-food-placeholder">
+                            <Utensils size={18} />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="bk-sales-row-info">
+                        <div
+                          className="bk-sales-row-name"
+                          title={item.name}
+                        >
+                          {item.name}
+                        </div>
+
+                        <div className="bk-sales-row-category">
+                          {item.category} • ₹{item.price} each
+                        </div>
+
+                        <div className="bk-share">
+                          <div className="bk-share-track">
+                            <div
+                              className="bk-share-fill"
+                              style={{
+                                width: `${Math.max(sharePercent, 2)}%`,
+                              }}
+                            />
+                          </div>
+                          <span className="bk-share-text">
+                            {sharePercent}% of sales
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="bk-sales-row-boxes">
+                        <div className="bk-box bk-box-qty">
+                          <div className="bk-box-label">Quantity</div>
+                          <div className="bk-box-value">
+                            {item.quantity}
+                          </div>
+                        </div>
+
+                        <div className="bk-box bk-box-sales">
+                          <div className="bk-box-label">Total Sales</div>
+                          <div className="bk-box-value">
+                            ₹{item.sales.toLocaleString("en-IN")}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="bk-empty">
+                  <div className="bk-empty-icon">
+                    <Package size={22} />
+                  </div>
+                  <div className="bk-empty-title">No Item Records</div>
+                  <div className="bk-empty-text">
+                    No items found for the selected time range.
+                  </div>
+                </div>
               )}
-
             </div>
-
           </div>
-
         </div>
-
       )}
-
     </div>
-
   );
-
 };

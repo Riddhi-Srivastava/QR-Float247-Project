@@ -452,66 +452,149 @@ const GuestView: React.FC<{
   }, [location.pathname]);
 
 
+useEffect(() => {
+  if (!routeOrderId) return;
 
-  useEffect(() => {
-
-
-
-    if (!routeOrderId) return;
-
-
-
-    if (activeOrder?.orderId === routeOrderId) return;
-
-
-
+  const loadOrder = async () => {
     try {
+      const response = await api.get(
+        `/orders/${routeOrderId}`
+      );
 
+      const backendOrder = response.data?.order;
 
+      if (!backendOrder) return;
 
-      const savedOrder = sessionStorage.getItem(`float247_order\_${routeOrderId}`);
+      const restoredItems: CartItem[] = Array.isArray(backendOrder.items)
+        ? backendOrder.items.map((item: any, index: number) => {
+            const food = item?.food || {};
+            const matchedMenuItem = menuItemsList.find(
+              menuItem =>
+                String(menuItem.id) ===
+                String(item?.foodId || food?.id)
+            );
 
+            const fallbackMenuItem = {
+              id: String(item?.foodId || food?.id || `food-${index}`),
+              name: String(
+                item?.name ||
+                  food?.name ||
+                  'Unknown Item'
+              ),
+              description: String(
+                food?.description || ''
+              ),
+              price: Number(
+                item?.price || food?.price || 0
+              ),
+              category: String(
+                item?.category ||
+                  food?.categoryId ||
+                  'all'
+              ) as MenuItem['category'],
+              image: String(
+                item?.image || food?.image || ''
+              ),
+              dietary:
+                food?.veg === 'VEG'
+                  ? 'veg'
+                  : 'non-veg',
+              rating: Number(food?.rating || 0),
+              ratingCount: Number(
+                food?.ratingCount || 0
+              ),
+              prepTimeMinutes: Number(
+                food?.prepTime || 0
+              ),
+              isAvailable: true,
+              isBestseller: Boolean(
+                food?.popular
+              ),
+              isChefSpecial: Boolean(
+                food?.featured
+              ),
+            } as MenuItem;
 
+            const menuItem =
+              matchedMenuItem || fallbackMenuItem;
 
-      if (savedOrder) {
+            const quantity = Number(
+              item?.quantity || 0
+            );
+            const unitPrice = Number(
+              item?.price ||
+                food?.price ||
+                menuItem.price ||
+                0
+            );
 
+            return {
+              cartItemId: String(
+                item?.id ||
+                  `restored-${index}`
+              ),
+              item: menuItem,
+              quantity,
+              customization: {
+                selectedVariant: undefined,
+                selectedAddons: [],
+                specialInstructions: undefined,
+              },
+              itemTotalPrice: unitPrice * quantity,
+            };
+          })
+        : [];
 
+      const restoredOrder: Order = {
+        orderId: backendOrder.id,
+        tokenNumber: backendOrder.tokenNumber,
+        tableNumber: backendOrder.tableNumber,
+        customerName: backendOrder.customerName,
+        customerPhone: backendOrder.customerPhone,
+        items: restoredItems,
+        subtotal: Number(backendOrder.subtotal),
+        tax: Number(backendOrder.tax),
+        serviceCharge: 0,
+        tip: 0,
+        discount: Number(backendOrder.discount),
+        total: Number(backendOrder.total),
 
-        const parsedOrder = JSON.parse(savedOrder) as Order;
+        status: String(
+          backendOrder.status || 'RECEIVED'
+        ).toLowerCase() as OrderStatus,
 
+        // IMPORTANT: original backend order time
+        createdAt: backendOrder.createdAt,
 
+        estimatedDeliveryTime:
+          backendOrder.estimatedPrepTime
+            ? `${backendOrder.estimatedPrepTime} Mins`
+            : '10-15 Mins',
 
-        if (parsedOrder?.orderId === routeOrderId) {
+        paymentMethod:
+          String(
+            backendOrder.paymentMethod || 'CASH'
+          ).toLowerCase() as
+            | 'counter'
+            | 'upi'
+            | 'card',
 
+        specialNotes:
+          backendOrder.specialInstructions || '',
+      };
 
-
-          setActiveOrder(parsedOrder);
-
-
-
-        }
-
-
-
-      }
-
-
-
+      setActiveOrder(restoredOrder);
     } catch (error) {
-
-
-
-      console.error('Failed to restore order route state:', error);
-
-
-
+      console.error(
+        'Failed to restore order:',
+        error
+      );
     }
+  };
 
-
-
-  }, [routeOrderId, activeOrder, setActiveOrder]);
-
-
+  loadOrder();
+}, [routeOrderId, setActiveOrder]);
+  
 
   const [selectedCategory, setSelectedCategory] =
 
@@ -1830,15 +1913,7 @@ const GuestView: React.FC<{
 
 
 
-        createdAt:
-
-
-
-          backendOrder.createdAt ||
-
-
-
-          new Date().toISOString(),
+       createdAt: backendOrder.createdAt,
 
 
 
@@ -4455,57 +4530,16 @@ const isGuestPage =
 
 
 
-      setOrders(prev =>
-
-
-
-        prev.map(order =>
-
-
-
-          order.orderId === orderId
-
-
-
-            ? {
-
-
-
-                ...order,
-
-
-
-                ...updatedBackendOrder,
-
-
-
-                orderId,
-
-
-
-                status:
-
-
-
-                  updatedStatus as OrderStatus,
-
-
-
-              }
-
-
-
-            : order
-
-
-
-        )
-
-
-
-      );
-
-
+     setOrders(prev =>
+  prev.map(order =>
+    order.orderId === orderId
+      ? {
+          ...order,
+          status: updatedStatus as OrderStatus,
+        }
+      : order
+  )
+);
 
       if (
 
@@ -4519,48 +4553,14 @@ const isGuestPage =
 
 
 
-        setActiveOrder(prev =>
-
-
-
-          prev
-
-
-
-            ? {
-
-
-
-                ...prev,
-
-
-
-                ...updatedBackendOrder,
-
-
-
-                orderId,
-
-
-
-                status:
-
-
-
-                  updatedStatus as OrderStatus,
-
-
-
-              }
-
-
-
-            : null
-
-
-
-        );
-
+       setActiveOrder(prev =>
+  prev
+    ? {
+        ...prev,
+        status: updatedStatus as OrderStatus,
+      }
+    : null
+);
 
 
       }
