@@ -1,16 +1,7 @@
 require("dotenv").config();
 
 const crypto = require("crypto");
-const { PrismaClient } = require("@prisma/client");
-const { PrismaPg } = require("@prisma/adapter-pg");
-
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
-
-const prisma = new PrismaClient({
-  adapter,
-});
+const prisma = require("../config/prisma");
 
 // =====================================================
 // CREATE ORDER
@@ -26,30 +17,30 @@ const createOrder = async ({
   paymentMethod,
   specialInstructions,
 }) => {
-  // 1. Guest ka cart find karo
-  const cart = await prisma.cart.findUnique({
-    where: {
-      guestId,
-    },
-    include: {
-      items: {
-        include: {
-          food: true,
+  // 1. Fetch Cart and Restaurant concurrently
+  const [cart, restaurant] = await Promise.all([
+    prisma.cart.findUnique({
+      where: {
+        guestId,
+      },
+      include: {
+        items: {
+          include: {
+            food: true,
+          },
         },
       },
-    },
-  });
+    }),
+    prisma.restaurant.findUnique({
+      where: {
+        id: restaurantId,
+      },
+    }),
+  ]);
 
   if (!cart || cart.items.length === 0) {
     throw new Error("Cart is empty");
   }
-
-  // 2. Restaurant check
-  const restaurant = await prisma.restaurant.findUnique({
-    where: {
-      id: restaurantId,
-    },
-  });
 
   if (!restaurant) {
     throw new Error("Restaurant not found");
@@ -114,14 +105,17 @@ const estimatedPrepTime = Math.ceil(
       // Generate customer-friendly order token
       // ---------------------------------------------
 
-      const tokenResult = await tx.order.aggregate({
-        _max: {
+      const maxOrder = await tx.order.findFirst({
+        select: {
           tokenNumber: true,
+        },
+        orderBy: {
+          tokenNumber: "desc",
         },
       });
 
       const nextTokenNumber =
-        (tokenResult._max.tokenNumber || 0) + 1;
+        (maxOrder?.tokenNumber || 0) + 1;
 
       // ---------------------------------------------
       // Create Order
@@ -188,7 +182,6 @@ const estimatedPrepTime = Math.ceil(
         include: {
           items: true,
           statusHistory: true,
-          restaurant: true,
         },
       });
 
@@ -202,6 +195,7 @@ const estimatedPrepTime = Math.ceil(
         },
       });
 
+      newOrder.restaurant = restaurant;
       return newOrder;
     },
     {
@@ -241,10 +235,15 @@ const getOrdersByGuest = async (guestId) => {
 // =====================================================
 
 const getOrderById = async (id, guestId) => {
+  const numericToken = !isNaN(Number(id)) ? Number(id) : undefined;
+
   const order = await prisma.order.findFirst({
     where: {
-      id,
       guestId,
+      OR: [
+        { id },
+        ...(numericToken !== undefined ? [{ tokenNumber: numericToken }] : []),
+      ],
     },
 
     include: {

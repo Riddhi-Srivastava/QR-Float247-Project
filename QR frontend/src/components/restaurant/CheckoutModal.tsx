@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+
 import {
   X,
   User,
@@ -55,196 +56,1176 @@ interface CheckoutModalProps {
   }) => void;
 }
 
-/*
- * ============================================================
- * STYLES (UI only)
- * ============================================================
- */
+/* ============================================================
+   FLOAT247 CHECKOUT UI
+   UI ONLY — NO BUSINESS LOGIC CHANGED
+============================================================ */
 
 const checkoutCss = `
-.co-overlay{
-  position:fixed;inset:0;z-index:999999;
-  background:rgba(20,8,4,.6);
-  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
-  display:flex;align-items:center;justify-content:center;
-  padding:16px;box-sizing:border-box;
-}
-.co-overlay *{box-sizing:border-box;}
-.co-modal{
-  --co-red:#e2231a;
-  --co-red-deep:#b3140f;
-  --co-amber:#ffa51f;
-  --co-brown:#2b0f0a;
-  --co-cream:#fdf7f1;
-  --co-pink:#fde3df;
-  width:100%;max-width:560px;max-height:94vh;
-  background:var(--co-cream);border-radius:26px;
-  box-shadow:0 30px 80px rgba(0,0,0,.5);
-  display:flex;flex-direction:column;overflow:hidden;position:relative;
-  color:var(--co-brown);
-}
+  .co-overlay,
+  .co-overlay * {
+    box-sizing: border-box;
+  }
 
-/* header */
-.co-header{
-  position:relative;flex-shrink:0;
-  display:flex;align-items:center;justify-content:space-between;gap:12px;
-  padding:16px 18px 16px 34px;
-  background:linear-gradient(100deg,#2a0e09 0%,#4a1810 60%,#5c1f14 100%);
-  color:#fff;
-}
-.co-strip-a,.co-strip-b{position:absolute;top:0;bottom:0;}
-.co-strip-a{left:0;width:14px;background:var(--co-amber);}
-.co-strip-b{left:14px;width:14px;background:var(--co-red);}
-.co-title-row{display:flex;align-items:center;gap:.6rem;}
-.co-title{margin:0;font-size:1.6rem;font-weight:900;line-height:1.1;letter-spacing:-.01em;}
-.co-sub{margin:.25rem 0 0;font-size:.85rem;color:#f3dcd2;}
-.co-close{
-  width:38px;height:38px;border-radius:50%;border:0;flex-shrink:0;
-  background:rgba(255,255,255,.22);color:#fff;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-}
-.co-close:disabled{opacity:.5;cursor:default;}
+  .co-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-/* body */
-.co-form{display:flex;flex-direction:column;flex:1;min-height:0;}
-.co-body{flex:1;min-height:0;overflow-y:auto;padding:14px 16px 6px;background:var(--co-cream);}
-.co-section{margin-bottom:14px;}
-.co-sec-head{display:flex;align-items:center;gap:.6rem;margin:0 0 .55rem;}
-.co-sec-chip{
-  width:32px;height:32px;border-radius:50%;background:var(--co-pink);color:var(--co-red);
-  display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
-}
-.co-sec-title{margin:0;font-size:1.05rem;font-weight:800;color:var(--co-brown);}
-.co-sec-side{margin-left:auto;font-size:.82rem;color:#7a655f;}
+    padding: 18px;
 
-.co-error{
-  display:flex;align-items:flex-start;gap:.6rem;padding:.7rem .85rem;margin-bottom:.9rem;
-  border-radius:14px;background:#fff1f1;border:1px solid #ffcaca;
-  color:#c62828;font-size:.85rem;font-weight:600;
-}
+    background:
+      radial-gradient(
+        circle at 50% 15%,
+        rgba(255, 36, 87, 0.10),
+        transparent 34%
+      ),
+      rgba(15, 15, 18, 0.48);
 
-/* inputs */
-.co-fields{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:14px;}
-.co-field{
-  display:flex;align-items:center;gap:.6rem;
-  background:#fffaf6;border:1px solid #efdcd3;border-radius:16px;
-  padding:.4rem .6rem .4rem .4rem;min-width:0;
-}
-.co-field-ico{
-  width:36px;height:36px;border-radius:50%;background:var(--co-pink);color:var(--co-red);
-  display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
-}
-.co-field-body{display:flex;flex-direction:column;min-width:0;flex:1;}
-.co-field-label{font-size:.68rem;color:#7a655f;line-height:1.2;}
-.co-input{
-  width:100%;border:0;outline:none;background:transparent;padding:0;
-  font-size:.95rem;font-weight:600;color:var(--co-brown);font-family:inherit;
-}
-.co-input::placeholder{color:#b3a29c;font-weight:400;font-size:.85rem;}
-.co-field:focus-within{border-color:var(--co-amber);box-shadow:0 0 0 3px rgba(255,165,31,.2);}
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
 
-/* payment */
-.co-pay-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem;}
-.co-pay{
-  position:relative;text-align:left;cursor:pointer;font-family:inherit;
-  background:#fffaf6;border:1px solid #efdcd3;border-radius:16px;
-  padding:.75rem .65rem;min-height:92px;color:var(--co-brown);
-  transition:border-color .15s ease,background .15s ease;
-}
-.co-pay.is-on{background:#ffe9c9;border:2px solid var(--co-amber);padding:calc(.75rem - 1px) calc(.65rem - 1px);}
-.co-pay:disabled{cursor:default;opacity:.7;}
-.co-pay-ico{color:var(--co-red);margin-bottom:.3rem;display:block;}
-.co-pay-name{font-weight:800;font-size:.95rem;}
-.co-pay-desc{font-size:.7rem;color:#7a655f;margin-top:.1rem;line-height:1.25;}
-.co-radio{
-  position:absolute;top:.55rem;right:.55rem;width:20px;height:20px;border-radius:50%;
-  border:2px solid #9b8a84;background:#fff;
-}
-.co-pay.is-on .co-radio{border-color:var(--co-red);background:var(--co-red);}
-.co-pay.is-on .co-radio::after{
-  content:"";position:absolute;inset:4px;border-radius:50%;background:#fff;
-}
+    animation: coOverlayIn 0.2s ease-out;
+  }
 
-/* instructions */
-.co-textarea{
-  width:100%;min-height:76px;resize:vertical;font-family:inherit;
-  background:#fffaf6;border:1px solid #efdcd3;border-radius:16px;
-  padding:.7rem .85rem;font-size:.9rem;color:var(--co-brown);outline:none;
-}
-.co-textarea::placeholder{color:#b3a29c;}
-.co-textarea:focus{border-color:var(--co-amber);box-shadow:0 0 0 3px rgba(255,165,31,.2);}
-.co-cutlery{display:flex;align-items:center;gap:.6rem;margin-top:.6rem;font-size:.88rem;color:var(--co-brown);cursor:default;}
-.co-check{
-  width:22px;height:22px;border-radius:6px;flex-shrink:0;
-  border:2px solid #b9a9a3;background:#fff;color:#fff;
-  display:inline-flex;align-items:center;justify-content:center;
-}
-.co-check.is-on{background:var(--co-red);border-color:var(--co-red);}
-.co-check-input{position:absolute;opacity:0;width:0;height:0;pointer-events:none;}
+  /* ==========================================================
+     MODAL
+  ========================================================== */
 
-/* summary */
-.co-summary{
-  background:#f8efe8;border:1px solid #efdcd3;border-radius:18px;overflow:hidden;
-}
-.co-items{padding:.35rem .8rem 0;}
-.co-item{display:flex;align-items:center;gap:.8rem;padding:.5rem 0;}
-.co-item + .co-item{border-top:1px solid #e6d6cc;}
-.co-thumb{
-  width:52px;height:52px;border-radius:12px;object-fit:cover;flex-shrink:0;
-  background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.1);
-}
-.co-item-info{flex:1;min-width:0;}
-.co-item-name{font-weight:800;font-size:.95rem;}
-.co-item-qty{font-size:.78rem;color:#7a655f;margin-top:.1rem;}
-.co-item-price{font-weight:800;font-size:.95rem;white-space:nowrap;}
-.co-bill{padding:.5rem .8rem .6rem;}
-.co-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;font-size:.88rem;color:#6b5650;padding:.15rem 0;}
-.co-row strong,.co-row .co-val{color:var(--co-brown);font-weight:700;}
-.co-total{
-  display:flex;align-items:center;justify-content:space-between;gap:1rem;
-  background:#ffe7bd;padding:.7rem .9rem;
-}
-.co-total-l{display:flex;align-items:center;gap:.5rem;font-size:1.05rem;font-weight:900;}
-.co-total-l svg{color:var(--co-amber);}
-.co-total-v{font-size:1.5rem;font-weight:900;color:var(--co-red);}
+  .co-modal {
+    --co-pink: #FF2457;
+    --co-pink-light: #FF4F78;
+    --co-pink-dark: #E91E4D;
+    --co-soft: #FFE7ED;
 
-/* footer */
-.co-footer{flex-shrink:0;padding:10px 16px 12px;background:var(--co-cream);}
-.co-cta{
-  width:100%;min-height:54px;border:0;border-radius:18px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;gap:.6rem;position:relative;
-  padding:0 60px;font-family:inherit;
-  background:linear-gradient(180deg,#ee2a1f,#c5170f);color:#fff;
-  font-size:1rem;font-weight:900;letter-spacing:.01em;
-  box-shadow:0 8px 18px rgba(226,35,26,.35);
-}
-.co-cta svg.co-crown{color:#ffc43a;}
-.co-cta-arrow{
-  position:absolute;right:8px;top:50%;transform:translateY(-50%);
-  width:38px;height:38px;border-radius:50%;background:var(--co-red-deep);
-  display:flex;align-items:center;justify-content:center;
-}
-.co-cta:disabled{background:#cfc6c1;box-shadow:none;cursor:not-allowed;color:#fff;}
-.co-cta:disabled .co-cta-arrow{background:#b3aaa5;}
-.co-note{
-  display:flex;align-items:center;justify-content:center;gap:.4rem;
-  margin-top:.6rem;font-size:.72rem;color:#7a655f;text-align:center;
-}
+    --co-bg: #F5F6FA;
+    --co-card: #FFFFFF;
 
-.co-spinner{
-  width:18px;height:18px;border:2px solid rgba(255,255,255,.4);
-  border-top-color:#fff;border-radius:50%;animation:checkoutSpin .8s linear infinite;
-}
-@keyframes checkoutSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.co-spinner{animation:none;}}
+    --co-text: #1F1F1F;
+    --co-body: #555555;
+    --co-muted: #8A8A8A;
 
-@media (max-width:520px){
-  .co-fields{grid-template-columns:1fr;}
-  .co-title{font-size:1.35rem;}
-  .co-pay{padding:.65rem .5rem;min-height:86px;}
-  .co-pay-desc{font-size:.66rem;}
-  .co-cta{padding:0 52px;font-size:.92rem;}
-}
+    --co-border: #E7E7EB;
+
+    --co-success: #22A06B;
+    --co-danger: #E53935;
+
+    width: min(560px, calc(100vw - 36px));
+    height: fit-content;
+    min-height: 520px;
+    max-height: calc(100dvh - 36px);
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+
+    background: var(--co-bg);
+    color: var(--co-text);
+
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 26px;
+
+    box-shadow:
+      0 30px 90px rgba(0, 0, 0, 0.25),
+      0 8px 30px rgba(0, 0, 0, 0.10);
+
+    font-family:
+      -apple-system,
+      BlinkMacSystemFont,
+      "SF Pro Display",
+      "SF Pro Text",
+      Inter,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
+
+    -webkit-font-smoothing: antialiased;
+
+    animation:
+      coModalIn
+      0.32s
+      cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* ==========================================================
+     HEADER
+  ========================================================== */
+
+  .co-header {
+    position: relative;
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+
+    padding: 20px 20px 17px;
+
+    background: #FFFFFF;
+
+    border-bottom: 1px solid var(--co-border);
+  }
+
+  .co-header::before {
+    content: "";
+    position: absolute;
+
+    left: 0;
+    top: 0;
+
+    width: 100%;
+    height: 3px;
+
+    background:
+      linear-gradient(
+        90deg,
+        var(--co-pink),
+        var(--co-pink-light),
+        var(--co-pink)
+      );
+  }
+
+  .co-header-main {
+    min-width: 0;
+  }
+
+  .co-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .co-title-icon {
+    width: 38px;
+    height: 38px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 12px;
+
+    background: var(--co-soft);
+    color: var(--co-pink);
+  }
+
+  .co-title {
+    margin: 0;
+
+    color: var(--co-text);
+
+    font-size: 1.42rem;
+    font-weight: 800;
+    line-height: 1.1;
+
+    letter-spacing: -0.035em;
+  }
+
+  .co-sub {
+    margin: 7px 0 0 48px;
+
+    color: var(--co-muted);
+
+    font-size: 0.82rem;
+    font-weight: 500;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .co-close {
+    width: 38px;
+    height: 38px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid var(--co-border);
+    border-radius: 12px;
+
+    background: #FFFFFF;
+    color: var(--co-body);
+
+    cursor: pointer;
+
+    transition:
+      background 0.18s ease,
+      color 0.18s ease,
+      border-color 0.18s ease,
+      transform 0.18s ease;
+  }
+
+  .co-close:hover {
+    color: var(--co-pink);
+    background: var(--co-soft);
+    border-color: rgba(255, 36, 87, 0.25);
+  }
+
+  .co-close:active {
+    transform: scale(0.94);
+  }
+
+  .co-close:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  /* ==========================================================
+     FORM / BODY
+  ========================================================== */
+
+  .co-form {
+    display: flex;
+    flex-direction: column;
+
+    flex: 1;
+    min-height: 0;
+  }
+
+  .co-body {
+    flex: 1;
+    min-height: 0;
+
+    overflow-y: auto;
+    overscroll-behavior: contain;
+
+    padding: 18px 18px 8px;
+
+    background: var(--co-bg);
+
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .co-body::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .co-body::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .co-body::-webkit-scrollbar-thumb {
+    background: #D9D9DF;
+    border-radius: 999px;
+  }
+
+  .co-section {
+    margin-bottom: 18px;
+  }
+
+  /* ==========================================================
+     SECTION HEAD
+  ========================================================== */
+
+  .co-sec-head {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    margin: 0 0 10px 2px;
+  }
+
+  .co-sec-chip {
+    width: 32px;
+    height: 32px;
+
+    flex-shrink: 0;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 10px;
+
+    background: var(--co-soft);
+    color: var(--co-pink);
+
+    border: 1px solid rgba(255, 36, 87, 0.08);
+  }
+
+  .co-sec-title {
+    margin: 0;
+
+    color: var(--co-text);
+
+    font-size: 0.96rem;
+    font-weight: 750;
+
+    letter-spacing: -0.01em;
+  }
+
+  .co-sec-side {
+    margin-left: auto;
+
+    color: var(--co-muted);
+
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+
+  /* ==========================================================
+     ERROR
+  ========================================================== */
+
+  .co-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+
+    padding: 11px 13px;
+    margin-bottom: 14px;
+
+    border: 1px solid rgba(229, 57, 53, 0.18);
+    border-radius: 12px;
+
+    background: #FFF4F3;
+    color: var(--co-danger);
+
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  /* ==========================================================
+     CUSTOMER FIELDS
+  ========================================================== */
+
+  .co-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    gap: 10px;
+
+    margin-bottom: 18px;
+  }
+
+  .co-field {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 9px 12px 9px 9px;
+
+    background: #FFFFFF;
+
+    border: 1px solid var(--co-border);
+    border-radius: 14px;
+
+    box-shadow:
+      0 2px 7px rgba(0, 0, 0, 0.035);
+
+    transition:
+      border-color 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+
+  .co-field:focus-within {
+    border-color: var(--co-pink);
+
+    box-shadow:
+      0 0 0 4px rgba(255, 36, 87, 0.09),
+      0 3px 10px rgba(0, 0, 0, 0.04);
+  }
+
+  .co-field-ico {
+    width: 36px;
+    height: 36px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+
+    background: var(--co-soft);
+    color: var(--co-pink);
+  }
+
+  .co-field-body {
+    min-width: 0;
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .co-field-label {
+    color: var(--co-muted);
+
+    font-size: 0.66rem;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .co-input {
+    width: 100%;
+
+    border: 0;
+    outline: none;
+
+    padding: 0;
+
+    background: transparent;
+
+    color: var(--co-text);
+
+    font-family: inherit;
+    font-size: 0.91rem;
+    font-weight: 650;
+  }
+
+  .co-input::placeholder {
+    color: #A8A8AE;
+
+    font-size: 0.82rem;
+    font-weight: 450;
+  }
+
+  .co-input:focus-visible {
+    outline: none;
+  }
+
+  /* ==========================================================
+     PAYMENT
+  ========================================================== */
+
+  .co-pay-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 9px;
+  }
+
+  .co-pay {
+    position: relative;
+
+    min-height: 92px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+
+    padding: 13px 12px;
+
+    border: 1px solid var(--co-border);
+    border-radius: 15px;
+
+    background: #FFFFFF;
+    color: var(--co-text);
+
+    font-family: inherit;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    box-shadow:
+      0 2px 7px rgba(0, 0, 0, 0.035);
+
+    transition:
+      border-color 0.18s ease,
+      background 0.18s ease,
+      box-shadow 0.18s ease,
+      transform 0.12s ease;
+  }
+
+  .co-pay:hover:not(:disabled) {
+    border-color: rgba(255, 36, 87, 0.35);
+
+    box-shadow:
+      0 5px 14px rgba(255, 36, 87, 0.08);
+  }
+
+  .co-pay:active:not(:disabled) {
+    transform: scale(0.975);
+  }
+
+  .co-pay.is-on {
+    background: var(--co-soft);
+
+    border: 1.5px solid var(--co-pink);
+
+    box-shadow:
+      0 6px 16px rgba(255, 36, 87, 0.13);
+  }
+
+  .co-pay:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  .co-pay-ico {
+    margin-bottom: 7px;
+
+    color: var(--co-pink);
+  }
+
+  .co-pay-name {
+    color: var(--co-text);
+
+    font-size: 0.9rem;
+    font-weight: 750;
+  }
+
+  .co-pay-desc {
+    margin-top: 3px;
+
+    color: var(--co-muted);
+
+    font-size: 0.68rem;
+    font-weight: 500;
+    line-height: 1.25;
+  }
+
+  .co-radio {
+    position: absolute;
+
+    top: 10px;
+    right: 10px;
+
+    width: 17px;
+    height: 17px;
+
+    border: 1.5px solid #CFCFD5;
+    border-radius: 50%;
+
+    background: #FFFFFF;
+
+    transition:
+      background 0.18s ease,
+      border-color 0.18s ease;
+  }
+
+  .co-pay.is-on .co-radio {
+    border-color: var(--co-pink);
+    background: var(--co-pink);
+  }
+
+  .co-pay.is-on .co-radio::after {
+    content: "";
+
+    position: absolute;
+    inset: 4px;
+
+    border-radius: 50%;
+
+    background: #FFFFFF;
+  }
+
+  /* ==========================================================
+     TEXTAREA
+  ========================================================== */
+
+  .co-textarea {
+    width: 100%;
+    min-height: 84px;
+
+    resize: vertical;
+
+    padding: 12px 13px;
+
+    border: 1px solid var(--co-border);
+    border-radius: 14px;
+
+    outline: none;
+
+    background: #FFFFFF;
+    color: var(--co-text);
+
+    font-family: inherit;
+    font-size: 0.88rem;
+    line-height: 1.5;
+
+    box-shadow:
+      0 2px 7px rgba(0, 0, 0, 0.035);
+
+    transition:
+      border-color 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+
+  .co-textarea::placeholder {
+    color: #A8A8AE;
+  }
+
+  .co-textarea:focus {
+    border-color: var(--co-pink);
+
+    box-shadow:
+      0 0 0 4px rgba(255, 36, 87, 0.09);
+  }
+
+  /* ==========================================================
+     CUTLERY
+  ========================================================== */
+
+  .co-cutlery {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    margin-top: 11px;
+    padding: 0 3px;
+
+    color: var(--co-body);
+
+    font-size: 0.84rem;
+    font-weight: 600;
+
+    cursor: default;
+  }
+
+  .co-check {
+    width: 21px;
+    height: 21px;
+
+    flex-shrink: 0;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1.5px solid #D3D3D8;
+    border-radius: 7px;
+
+    background: #FFFFFF;
+    color: #FFFFFF;
+
+    transition:
+      background 0.18s ease,
+      border-color 0.18s ease;
+  }
+
+  .co-check.is-on {
+    border-color: var(--co-pink);
+    background: var(--co-pink);
+  }
+
+  .co-check-input {
+    position: absolute;
+
+    opacity: 0;
+
+    width: 0;
+    height: 0;
+
+    pointer-events: none;
+  }
+
+  .co-cutlery > svg {
+    color: var(--co-pink);
+  }
+
+  /* ==========================================================
+     ORDER SUMMARY
+  ========================================================== */
+
+  .co-summary {
+    overflow: hidden;
+
+    background: #FFFFFF;
+
+    border: 1px solid var(--co-border);
+    border-radius: 17px;
+
+    box-shadow:
+      0 3px 12px rgba(0, 0, 0, 0.045);
+  }
+
+  .co-items {
+    padding: 4px 13px 0;
+  }
+
+  .co-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+
+    padding: 10px 0;
+  }
+
+  .co-item + .co-item {
+    border-top: 1px solid var(--co-border);
+  }
+
+  .co-thumb {
+    width: 52px;
+    height: 52px;
+
+    flex-shrink: 0;
+
+    object-fit: cover;
+
+    border-radius: 12px;
+
+    background: var(--co-soft);
+  }
+
+  .co-item-info {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .co-item-name {
+    overflow: hidden;
+
+    color: var(--co-text);
+
+    font-size: 0.88rem;
+    font-weight: 700;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .co-item-qty {
+    margin-top: 4px;
+
+    color: var(--co-muted);
+
+    font-size: 0.74rem;
+    font-weight: 500;
+  }
+
+  .co-item-price {
+    color: var(--co-text);
+
+    font-size: 0.9rem;
+    font-weight: 750;
+
+    white-space: nowrap;
+  }
+
+  .co-bill {
+    padding: 9px 13px 10px;
+
+    border-top: 1px solid var(--co-border);
+  }
+
+  .co-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+
+    padding: 4px 0;
+
+    color: var(--co-muted);
+
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+
+  .co-row strong,
+  .co-row .co-val {
+    color: var(--co-body);
+    font-weight: 650;
+  }
+
+  .co-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+
+    padding: 13px 14px;
+
+    background:
+      linear-gradient(
+        135deg,
+        #FFE7ED,
+        #FFF2F5
+      );
+
+    border-top: 1px solid rgba(255, 36, 87, 0.08);
+  }
+
+  .co-total-l {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    color: var(--co-text);
+
+    font-size: 0.94rem;
+    font-weight: 800;
+  }
+
+  .co-total-l svg {
+    color: var(--co-pink);
+  }
+
+  .co-total-v {
+    color: var(--co-pink);
+
+    font-size: 1.42rem;
+    font-weight: 850;
+
+    letter-spacing: -0.035em;
+  }
+
+  /* ==========================================================
+     FOOTER
+  ========================================================== */
+
+  .co-footer {
+    flex-shrink: 0;
+
+    padding: 12px 18px 15px;
+
+    background: rgba(255, 255, 255, 0.96);
+
+    border-top: 1px solid var(--co-border);
+
+    box-shadow:
+      0 -4px 16px rgba(0, 0, 0, 0.035);
+
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+  }
+
+  .co-cta {
+    position: relative;
+
+    width: 100%;
+    min-height: 55px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 9px;
+
+    padding: 0 58px 0 18px;
+
+    border: 0;
+    border-radius: 14px;
+
+    background:
+      linear-gradient(
+        135deg,
+        #FF2457 0%,
+        #FF3F6C 55%,
+        #FF4F78 100%
+      );
+
+    color: #FFFFFF;
+
+    font-family: inherit;
+
+    font-size: 0.93rem;
+    font-weight: 800;
+
+    letter-spacing: 0.01em;
+
+    cursor: pointer;
+
+    box-shadow:
+      0 10px 24px rgba(255, 36, 87, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.28);
+
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+
+  .co-cta:hover:not(:disabled) {
+    transform: translateY(-1px);
+
+    box-shadow:
+      0 13px 28px rgba(255, 36, 87, 0.30),
+      inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  }
+
+  .co-cta:active:not(:disabled) {
+    transform: scale(0.985);
+  }
+
+  .co-cta:disabled {
+    background: #D9D9DE;
+
+    box-shadow: none;
+
+    color: #FFFFFF;
+
+    cursor: not-allowed;
+  }
+
+  .co-crown {
+    flex-shrink: 0;
+  }
+
+  .co-cta-arrow {
+    position: absolute;
+
+    right: 8px;
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    width: 39px;
+    height: 39px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+
+    background: rgba(255, 255, 255, 0.20);
+  }
+
+  .co-cta:disabled .co-cta-arrow {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  .co-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 5px;
+
+    margin-top: 8px;
+
+    color: var(--co-muted);
+
+    font-size: 0.68rem;
+    font-weight: 500;
+
+    text-align: center;
+  }
+
+  /* ==========================================================
+     SPINNER
+  ========================================================== */
+
+  .co-spinner {
+    width: 18px;
+    height: 18px;
+
+    flex-shrink: 0;
+
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #FFFFFF;
+
+    border-radius: 50%;
+
+    animation:
+      checkoutSpin
+      0.75s
+      linear
+      infinite;
+  }
+
+  /* ==========================================================
+     FOCUS
+  ========================================================== */
+
+  .co-pay:focus-visible,
+  .co-cta:focus-visible,
+  .co-close:focus-visible,
+  .co-input:focus-visible,
+  .co-textarea:focus-visible {
+    outline: 2px solid var(--co-pink);
+    outline-offset: 2px;
+  }
+
+  /* ==========================================================
+     ANIMATION
+  ========================================================== */
+
+  @keyframes checkoutSpin {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes coOverlayIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes coModalIn {
+    from {
+      opacity: 0;
+      transform:
+        translateY(18px)
+        scale(0.985);
+    }
+
+    to {
+      opacity: 1;
+      transform:
+        translateY(0)
+        scale(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .co-spinner,
+    .co-modal,
+    .co-overlay {
+      animation: none;
+    }
+  }
+
+  /* ==========================================================
+     MOBILE
+  ========================================================== */
+
+  @media (max-width: 520px) {
+    .co-overlay {
+      align-items: flex-end;
+      padding: 0;
+    }
+
+    .co-modal {
+      width: 100%;
+      max-width: none;
+
+      min-height: 0;
+
+      max-height:
+        calc(
+          94dvh -
+          env(safe-area-inset-top, 0px)
+        );
+
+      border-radius: 24px 24px 0 0;
+    }
+
+    .co-modal::before {
+      content: "";
+
+      position: absolute;
+
+      top: 7px;
+      left: 50%;
+
+      transform: translateX(-50%);
+
+      width: 38px;
+      height: 4px;
+
+      border-radius: 999px;
+
+      background: #D7D7DC;
+
+      z-index: 5;
+    }
+
+    .co-header {
+      padding:
+        22px
+        16px
+        15px;
+    }
+
+    .co-title {
+      font-size: 1.28rem;
+    }
+
+    .co-title-icon {
+      width: 36px;
+      height: 36px;
+    }
+
+    .co-sub {
+      margin-left: 46px;
+
+      font-size: 0.77rem;
+    }
+
+    .co-body {
+      padding:
+        15px
+        15px
+        6px;
+    }
+
+    .co-fields {
+      grid-template-columns: 1fr;
+      gap: 9px;
+    }
+
+    .co-pay-grid {
+      gap: 7px;
+    }
+
+    .co-pay {
+      min-height: 88px;
+      padding: 11px 9px;
+    }
+
+    .co-pay.is-on {
+      padding: 10px 8px;
+    }
+
+    .co-pay-name {
+      font-size: 0.83rem;
+    }
+
+    .co-pay-desc {
+      font-size: 0.62rem;
+    }
+
+    .co-footer {
+      padding:
+        11px
+        15px
+        calc(
+          13px +
+          env(safe-area-inset-bottom, 0px)
+        );
+    }
+
+    .co-cta {
+      min-height: 53px;
+      font-size: 0.9rem;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .co-pay-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .co-pay {
+      min-height: 72px;
+    }
+
+    .co-pay-ico {
+      margin-bottom: 3px;
+    }
+  }
 `;
 
 const CheckoutModal: React.FC<CheckoutModalProps> = ({
@@ -267,9 +1248,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // --------------------------------------------------
-  // BILL
-  // --------------------------------------------------
+  /* ==========================================================
+     BILL
+  ========================================================== */
 
   const subtotal = useMemo(() => {
     return cartItems.reduce(
@@ -297,9 +1278,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     );
   }, [cartItems]);
 
-  // --------------------------------------------------
-  // VALIDATION
-  // --------------------------------------------------
+  /* ==========================================================
+     VALIDATION
+  ========================================================== */
 
   const validateForm = () => {
     if (cartItems.length === 0) {
@@ -335,9 +1316,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     return true;
   };
 
-  // --------------------------------------------------
-  // PHONE
-  // --------------------------------------------------
+  /* ==========================================================
+     PHONE
+  ========================================================== */
 
   const handlePhoneChange = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -350,9 +1331,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setErrorMsg('');
   };
 
-  // --------------------------------------------------
-  // SUBMIT
-  // --------------------------------------------------
+  /* ==========================================================
+     SUBMIT
+  ========================================================== */
 
   const handleSubmit = async (
     e: React.FormEvent<HTMLFormElement>
@@ -387,17 +1368,17 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   };
 
-  // --------------------------------------------------
-  // CLOSED
-  // --------------------------------------------------
+  /* ==========================================================
+     CLOSED
+  ========================================================== */
 
   if (!isOpen) {
     return null;
   }
 
-  // --------------------------------------------------
-  // PAYMENT OPTIONS (visual meta only)
-  // --------------------------------------------------
+  /* ==========================================================
+     PAYMENT OPTIONS
+  ========================================================== */
 
   const paymentOptions: {
     id: 'upi' | 'card' | 'counter';
@@ -405,32 +1386,50 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     desc: string;
     icon: React.ReactNode;
   }[] = [
-    {
-      id: 'upi',
-      name: 'UPI',
-      desc: 'GPay / PhonePe / Paytm',
-      icon: <Smartphone size={26} className="co-pay-ico" />,
-    },
-    {
-      id: 'card',
-      name: 'Card',
-      desc: 'Debit / Credit',
-      icon: <CreditCard size={26} className="co-pay-ico" />,
-    },
-    {
-      id: 'counter',
-      name: 'Counter',
-      desc: 'Pay at counter',
-      icon: <Banknote size={26} className="co-pay-ico" />,
-    },
-  ];
+      {
+        id: 'upi',
+        name: 'UPI',
+        desc: 'GPay / PhonePe / Paytm',
+        icon: (
+          <Smartphone
+            size={24}
+            className="co-pay-ico"
+          />
+        ),
+      },
+      {
+        id: 'card',
+        name: 'Card',
+        desc: 'Debit / Credit',
+        icon: (
+          <CreditCard
+            size={24}
+            className="co-pay-ico"
+          />
+        ),
+      },
+      {
+        id: 'counter',
+        name: 'Counter',
+        desc: 'Pay at counter',
+        icon: (
+          <Banknote
+            size={24}
+            className="co-pay-ico"
+          />
+        ),
+      },
+    ];
 
-  // --------------------------------------------------
-  // RENDER
-  // --------------------------------------------------
+  /* ==========================================================
+     RENDER
+  ========================================================== */
 
   return createPortal(
-    <div className="co-overlay" onClick={onClose}>
+    <div
+      className="co-overlay"
+      onClick={onClose}
+    >
       <style>{checkoutCss}</style>
 
       <div
@@ -440,33 +1439,31 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         aria-modal="true"
         aria-labelledby="checkout-title"
       >
-        {/* ==========================================
+        {/* =====================================================
             HEADER
-        ========================================== */}
+        ===================================================== */}
 
         <div className="co-header">
-          <span className="co-strip-a" />
-          <span className="co-strip-b" />
+          <div className="co-header-main">
+            <div className="co-title-row">
+              <span className="co-title-icon">
+                <Crown
+                  size={20}
+                  fill="#FF2457"
+                  strokeWidth={2.2}
+                />
+              </span>
 
-         <div>
-        <div className="co-title-row">
-        <Crown
-         size={28}
-         color="#ffc43a"
-        fill="#000000"
-    />
-
-    <h2
-      id="checkout-title"
-      className="co-title"
-      style={{ color: "#db1515" }}
-    >
-      Checkout
-    </h2>
-  </div>
+              <h2
+                id="checkout-title"
+                className="co-title"
+              >
+                Checkout
+              </h2>
+            </div>
 
             <p className="co-sub">
-            {tableInfo.tableNumber} ·{' '}
+              {tableInfo.tableNumber} ·{' '}
               {tableInfo.restaurantName}
             </p>
           </div>
@@ -478,27 +1475,25 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             className="co-close"
             aria-label="Close checkout"
           >
-            <X size={22} />
+            <X size={19} />
           </button>
         </div>
 
-        {/* ==========================================
+        {/* =====================================================
             FORM
-        ========================================== */}
+        ===================================================== */}
 
         <form
           onSubmit={handleSubmit}
           className="co-form"
         >
-          {/* SCROLLABLE BODY */}
-
           <div className="co-body">
             {/* ERROR */}
 
             {errorMsg && (
               <div className="co-error">
                 <AlertCircle
-                  size={19}
+                  size={18}
                   style={{
                     flexShrink: 0,
                     marginTop: '1px',
@@ -509,16 +1504,16 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
             )}
 
-            {/* ======================================
+            {/* ==================================================
                 CUSTOMER DETAILS
-            ====================================== */}
+            ================================================== */}
 
             <section className="co-fields">
               {/* NAME */}
 
               <label className="co-field">
                 <span className="co-field-ico">
-                  <User size={18} />
+                  <User size={17} />
                 </span>
 
                 <span className="co-field-body">
@@ -545,7 +1540,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
               <label className="co-field">
                 <span className="co-field-ico">
-                  <Phone size={18} />
+                  <Phone size={17} />
                 </span>
 
                 <span className="co-field-body">
@@ -568,14 +1563,14 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </label>
             </section>
 
-            {/* ======================================
+            {/* ==================================================
                 PAYMENT
-            ====================================== */}
+            ================================================== */}
 
             <section className="co-section">
               <div className="co-sec-head">
                 <span className="co-sec-chip">
-                  <CreditCard size={17} />
+                  <CreditCard size={16} />
                 </span>
 
                 <h3 className="co-sec-title">
@@ -618,14 +1613,14 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
             </section>
 
-            {/* ======================================
+            {/* ==================================================
                 SPECIAL INSTRUCTIONS
-            ====================================== */}
+            ================================================== */}
 
             <section className="co-section">
               <div className="co-sec-head">
                 <span className="co-sec-chip">
-                  <Pencil size={16} />
+                  <Pencil size={15} />
                 </span>
 
                 <h3 className="co-sec-title">
@@ -655,28 +1650,33 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <span
                   className={
                     'co-check' +
-                    (includeCutlery ? ' is-on' : '')
+                    (includeCutlery
+                      ? ' is-on'
+                      : '')
                   }
                 >
                   {includeCutlery && (
-                    <Check size={15} strokeWidth={3.5} />
+                    <Check
+                      size={13}
+                      strokeWidth={3.5}
+                    />
                   )}
                 </span>
 
-                <Utensils size={17} />
+                <Utensils size={16} />
 
                 <span>Include cutlery</span>
               </label>
             </section>
 
-            {/* ======================================
+            {/* ==================================================
                 ORDER SUMMARY
-            ====================================== */}
+            ================================================== */}
 
             <section className="co-section">
               <div className="co-sec-head">
                 <span className="co-sec-chip">
-                  <ClipboardList size={17} />
+                  <ClipboardList size={16} />
                 </span>
 
                 <h3 className="co-sec-title">
@@ -685,7 +1685,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
                 <span className="co-sec-side">
                   {totalItems}{' '}
-                  {totalItems === 1 ? 'item' : 'items'}
+                  {totalItems === 1
+                    ? 'item'
+                    : 'items'}
                 </span>
               </div>
 
@@ -729,9 +1731,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   ))}
                 </div>
 
-                <div className="co-bill">
-                  {/* SUBTOTAL */}
+                {/* BILL */}
 
+                <div className="co-bill">
                   <div className="co-row">
                     <span>
                       Subtotal ({totalItems}{' '}
@@ -746,22 +1748,23 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     </strong>
                   </div>
 
-                  {/* TAX */}
-
                   <div className="co-row">
                     <span>GST (5%)</span>
+
                     <span className="co-val">
                       ₹{tax.toFixed(0)}
                     </span>
                   </div>
 
-                  {/* TIP */}
-
                   {tipAmount > 0 && (
                     <div className="co-row">
                       <span>Tip</span>
+
                       <span className="co-val">
-                        ₹{Number(tipAmount).toFixed(0)}
+                        ₹
+                        {Number(
+                          tipAmount
+                        ).toFixed(0)}
                       </span>
                     </div>
                   )}
@@ -772,8 +1775,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <div className="co-total">
                   <span className="co-total-l">
                     <Crown
-                      size={26}
-                      fill="#ffa51f"
+                      size={20}
+                      fill="#FFB8C8"
                     />
 
                     Grand Total
@@ -787,9 +1790,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </section>
           </div>
 
-          {/* ==========================================
+          {/* ===================================================
               FOOTER
-          ========================================== */}
+          =================================================== */}
 
           <div className="co-footer">
             <button
@@ -809,8 +1812,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
               ) : (
                 <>
                   <Crown
-                    size={24}
-                    fill="#ffc43a"
+                    size={20}
+                    fill="rgba(255,255,255,0.35)"
                     className="co-crown"
                   />
 
@@ -820,14 +1823,14 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   </span>
 
                   <span className="co-cta-arrow">
-                    <ArrowRight size={22} />
+                    <ArrowRight size={21} />
                   </span>
                 </>
               )}
             </button>
 
             <div className="co-note">
-              <Lock size={14} />
+              <Lock size={13} />
 
               <span>
                 By placing this order, you confirm

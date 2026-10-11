@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const compression = require("compression");
 
 const authRoutes = require("./routes/authRoutes");
 const restaurantRoutes = require("./routes/restaurantRoutes");
@@ -28,6 +29,10 @@ const adminCouponRoutes = require("./admin/routes/adminCouponRoutes");
 const app = express();
 
 app.use(cors());
+
+// Response compression
+app.use(compression());
+
 app.use(express.json());
 
 app.get("/api/health", (req, res) => {

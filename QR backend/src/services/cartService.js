@@ -2,21 +2,7 @@ require("dotenv").config();
 
 const crypto = require("crypto");
 
-const {
-  PrismaClient,
-} = require("@prisma/client");
-
-const {
-  PrismaPg,
-} = require("@prisma/adapter-pg");
-
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
-
-const prisma = new PrismaClient({
-  adapter,
-});
+const prisma = require("../config/prisma");
 
 // ============================================
 // GET OR CREATE GUEST CART
@@ -76,12 +62,14 @@ const addToCart = async (
   foodId,
   quantity = 1
 ) => {
-  const food =
-    await prisma.foodItem.findUnique({
+  const [food, cart] = await Promise.all([
+    prisma.foodItem.findUnique({
       where: {
         id: foodId,
       },
-    });
+    }),
+    getOrCreateCart(guestId),
+  ]);
 
   if (!food) {
     throw new Error(
@@ -100,9 +88,6 @@ const addToCart = async (
       "Quantity must be at least 1"
     );
   }
-
-  const cart =
-    await getOrCreateCart(guestId);
 
   const existingItem =
     await prisma.cartItem.findUnique({

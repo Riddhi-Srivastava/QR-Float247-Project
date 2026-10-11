@@ -3,16 +3,7 @@ require("dotenv").config();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-const { PrismaClient } = require("@prisma/client");
-const { PrismaPg } = require("@prisma/adapter-pg");
-
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
-
-const prisma = new PrismaClient({
-  adapter,
-});
+const prisma = require("../../config/prisma");
 
 const loginAdmin = async ({ email, password }) => {
   const admin = await prisma.user.findUnique({
@@ -40,7 +31,7 @@ const loginAdmin = async ({ email, password }) => {
     },
     process.env.JWT_SECRET,
     {
-      expiresIn: "7d",
+      expiresIn: process.env.ADMIN_SESSION_EXPIRES_IN || process.env.JWT_EXPIRES_IN || "8h",
     }
   );
 

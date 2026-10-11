@@ -1,18 +1,34 @@
-import React from 'react';
+import React, {
+  useRef,
+  useEffect,
+} from 'react';
+
 import {
   Search,
   Moon,
   Sun,
   Flame,
   ShieldCheck,
-  ShoppingBasket
+  ShoppingBasket,
+  UtensilsCrossed,
+  Sparkles,
+  ChevronRight,
 } from 'lucide-react';
-import { TableInfo, Order } from '../../types/restaurant';
+
+import {
+  TableInfo,
+  Order,
+} from '../../types/restaurant';
 
 interface RestaurantHeaderProps {
   tableInfo: TableInfo;
+
   activeOrder: Order | null;
-  activeView: 'menu' | 'success' | 'tracker';
+
+  activeView:
+  | 'menu'
+  | 'success'
+  | 'tracker';
 
   onOpenWaiterModal: () => void;
   onOpenOrderTracker: () => void;
@@ -41,607 +57,1046 @@ export const RestaurantHeader: React.FC<
   searchQuery,
   setSearchQuery,
   theme,
-  toggleTheme
+  toggleTheme,
 }) => {
-  return (
-    <>
-      <header
-        className="restaurant-header"
-        style={{
-          marginTop: 0,
-          paddingTop: 0
-        }}
-      >
-        {/* Main Restaurant Brand Banner */}
-        <div className="container">
-          <div
-            className="resto-hero-card"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '16px'
-            }}
-          >
-            {/* LEFT — Chef Logo + FLOAT24/7 + Track Order */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                minWidth: 0
-              }}
-            >
-              <div className="resto-avatar">
-                <span
-                  style={{
-                    fontSize: '1.85rem'
-                  }}
-                >
-                  👨‍🍳
-                </span>
+    const headerRef =
+      useRef<HTMLElement>(null);
+
+    /* =========================================================
+       KEEP EXISTING HEADER HEIGHT BEHAVIOUR
+    ========================================================= */
+
+    useEffect(() => {
+      const el = headerRef.current;
+
+      if (!el) return;
+
+      const updateHeight = () => {
+        const height = el.offsetHeight;
+
+        if (height > 0) {
+          document.documentElement.style.setProperty(
+            '--header-height',
+            `${height}px`
+          );
+        }
+      };
+
+      updateHeight();
+
+      const resizeObserver =
+        new ResizeObserver(() =>
+          updateHeight()
+        );
+
+      resizeObserver.observe(el);
+
+      window.addEventListener(
+        'resize',
+        updateHeight
+      );
+
+      return () => {
+        resizeObserver.disconnect();
+
+        window.removeEventListener(
+          'resize',
+          updateHeight
+        );
+      };
+    }, []);
+
+    return (
+      <>
+        <header
+          ref={headerRef}
+          className="restaurant-header float247-header"
+        >
+          <div className="container">
+
+            {/* =================================================
+              TOP BRAND BAR
+          ================================================= */}
+
+            <div className="float-header-main">
+
+              {/* BRAND */}
+              <div className="float-brand-group">
+
+                <div className="float-logo-mark">
+                  <UtensilsCrossed
+                    size={22}
+                    strokeWidth={2.5}
+                  />
+
+                  <Sparkles
+                    className="float-logo-spark"
+                    size={11}
+                  />
+                </div>
+
+                <div className="float-brand-copy">
+                  <span className="float-brand-name">
+                    Float<span>24/7</span>
+                  </span>
+
+                  <span className="float-brand-tagline">
+                    GOOD FOOD · ANYTIME
+                  </span>
+                </div>
+
+                {/* ACTIVE ORDER */}
+                {activeOrder && (
+                  <button
+                    type="button"
+                    className="float-track-order"
+                    onClick={
+                      onOpenOrderTracker
+                    }
+                    title="View active kitchen order"
+                  >
+                    <span className="track-live-dot" />
+
+                    <Flame
+                      size={15}
+                      strokeWidth={2.5}
+                    />
+
+                    <span className="track-order-text">
+                      Track Order
+                    </span>
+
+                    <span className="track-token">
+                      #{activeOrder.tokenNumber}
+                    </span>
+
+                    <ChevronRight size={14} />
+                  </button>
+                )}
               </div>
 
-              <span className="float-brand">
-                🍽️ Float 24/7
-              </span>
+              {/* RIGHT ACTIONS */}
+              <div className="float-header-actions">
 
-              {/* Track Order */}
-              {activeOrder && (
+                {/* TABLE */}
+                {tableInfo?.tableNumber && (
+                  <div className="float-table-chip">
+                    <span className="table-chip-dot" />
+                    <span>
+                      Table {tableInfo.tableNumber}
+                    </span>
+                  </div>
+                )}
+
+                {/* CART */}
                 <button
-                  className="live-order-btn"
-                  onClick={onOpenOrderTracker}
-                  title="View active kitchen order"
+                  type="button"
+                  className="float-header-action cart-action"
+                  onClick={onOpenCart}
+                  title="Open Your Tokri"
                 >
-                  <Flame size={14} />
+                  <ShoppingBasket
+                    size={18}
+                    strokeWidth={2.3}
+                  />
 
-                  <span>
-                    Track Order (#
-                    {activeOrder.tokenNumber})
+                  <span className="action-label">
+                    Tokri
                   </span>
+
+                  {cartItemCount > 0 && (
+                    <span className="float-cart-badge">
+                      {cartItemCount}
+                    </span>
+                  )}
                 </button>
-              )}
-            </div>
 
-            {/* RIGHT — Tokri + Admin + Theme */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                flexShrink: 0
-              }}
-            >
-              {/* Your Tokri Button */}
-              <button
-                type="button"
-                className="tokri-button"
-                onClick={onOpenCart}
-                title="Open Your Tokri"
-              >
-                <ShoppingBasket size={16} />
-                <span>Your Tokri</span>
-
-                {cartItemCount > 0 && (
-                  <span className="tokri-badge">
-                    {cartItemCount}
-                  </span>
-                )}
-              </button>
-
-              {/* Admin Panel Button */}
-              <button
-                type="button"
-                className="admin-panel-button"
-                onClick={onSwitchToAdminView}
-                title="Open Admin Panel"
-              >
-                <ShieldCheck size={16} />
-                <span>Admin Panel</span>
-              </button>
-
-              {/* Theme Button */}
-              <button
-                className="icon-btn-small"
-                onClick={toggleTheme}
-                title="Toggle Dark/Light Mode"
-              >
-                {theme === 'dark' ? (
-                  <Sun size={14} />
-                ) : (
-                  <Moon size={14} />
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Search Bar — Menu Page Only */}
-          {activeView === 'menu' && (
-            <div className="search-bar-wrapper">
-              <Search
-                size={18}
-                className="search-icon"
-              />
-
-              <input
-                type="text"
-                placeholder="Search Whopper, Crispy Burger, Fries, Shake..."
-                value={searchQuery}
-                onChange={(e) =>
-                  setSearchQuery(e.target.value)
-                }
-                className="search-input"
-              />
-
-              {searchQuery && (
+                {/* ADMIN */}
                 <button
-                  className="clear-search-btn"
-                  onClick={() =>
-                    setSearchQuery('')
+                  type="button"
+                  className="float-header-action admin-action"
+                  onClick={
+                    onSwitchToAdminView
                   }
+                  title="Open Admin Panel"
                 >
-                  ✕
+                  <ShieldCheck
+                    size={17}
+                    strokeWidth={2.3}
+                  />
+
+                  <span className="action-label">
+                    Boss Panel
+                  </span>
                 </button>
-              )}
+
+                {/* THEME */}
+                <button
+                  type="button"
+                  className="float-theme-button"
+                  onClick={toggleTheme}
+                  title="Toggle Dark/Light Mode"
+                  aria-label="Toggle theme"
+                >
+                  {theme === 'dark' ? (
+                    <Sun
+                      size={17}
+                      strokeWidth={2.2}
+                    />
+                  ) : (
+                    <Moon
+                      size={17}
+                      strokeWidth={2.2}
+                    />
+                  )}
+                </button>
+              </div>
             </div>
-          )}
-        </div>
-      </header>
 
-      {/* =====================================================
-          INTERNAL CSS
-          ===================================================== */}
+            {/* =================================================
+              SEARCH
+          ================================================= */}
 
-      <style>
-        {`
+            {activeView === 'menu' && (
+              <div className="float-search-shell">
 
-          /* ==========================================
-             FLOAT BRAND
-             ========================================== */
+                <div className="float-search-icon">
+                  <Search
+                    size={19}
+                    strokeWidth={2.4}
+                  />
+                </div>
 
-          .float-brand {
-            display: inline-flex;
-            align-items: center;
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) =>
+                    setSearchQuery(
+                      e.target.value
+                    )
+                  }
+                  placeholder="Search biryani, burger, fries, shake..."
+                  className="float-search-input"
+                />
+
+                {searchQuery && (
+                  <button
+                    type="button"
+                    className="float-clear-search"
+                    onClick={() =>
+                      setSearchQuery('')
+                    }
+                    aria-label="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
+
+                <div className="search-end-dot">
+                  <Search
+                    size={17}
+                    strokeWidth={2.5}
+                  />
+                </div>
+              </div>
+            )}
+
+          </div>
+        </header>
+
+        <style>{`
+        /* =====================================================
+           FLOAT247 HEADER
+           iOS INSPIRED / PINK SYSTEM
+        ===================================================== */
+
+        .float247-header {
+          position: relative;
+
+          z-index: 50;
+
+          padding:
+            10px 0 8px;
+
+          background:
+            linear-gradient(
+              180deg,
+              #FFFFFF 0%,
+              #FFF9FB 100%
+            );
+
+          border-bottom:
+            1px solid
+            rgba(255,36,87,0.08);
+        }
+
+        .float247-header
+        .container {
+          position: relative;
+        }
+
+        /* =====================================================
+           MAIN HEADER
+        ===================================================== */
+
+        .float-header-main {
+          min-height: 64px;
+
+          padding:
+            8px 10px;
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: space-between;
+
+          gap: 14px;
+
+          border-radius: 23px;
+
+          background:
+            rgba(255,255,255,0.94);
+
+          border:
+            1px solid #E7E7EB;
+
+          box-shadow:
+            0 6px 20px
+              rgba(31,31,31,0.055),
+            inset 0 1px 0
+              rgba(255,255,255,0.95);
+
+          backdrop-filter:
+            blur(14px);
+        }
+
+        /* =====================================================
+           BRAND
+        ===================================================== */
+
+        .float-brand-group {
+          min-width: 0;
+
+          display: flex;
+
+          align-items: center;
+
+          gap: 9px;
+        }
+
+        .float-logo-mark {
+          position: relative;
+
+          width: 43px;
+          height: 43px;
+
+          min-width: 43px;
+
+          display: flex;
+
+          align-items: center;
+
+          justify-content: center;
+
+          border-radius: 14px;
+
+          background:
+            linear-gradient(
+              135deg,
+              #FF2457,
+              #FF4F78
+            );
+
+          color: #FFFFFF;
+
+          box-shadow:
+            0 7px 17px
+              rgba(255,36,87,0.24);
+        }
+
+        .float-logo-spark {
+          position: absolute;
+
+          top: 5px;
+          right: 5px;
+
+          color:
+            rgba(255,255,255,0.95);
+        }
+
+        .float-brand-copy {
+          display: flex;
+
+          flex-direction: column;
+
+          justify-content: center;
+
+          min-width: 0;
+        }
+
+        .float-brand-name {
+          color: #1F1F1F;
+
+          font-family:
+            var(--font-heading),
+            'Fredoka',
+            'Outfit',
+            sans-serif;
+
+          font-size: 21px;
+
+          line-height: 1;
+
+          font-weight: 900;
+
+          letter-spacing: -0.6px;
+
+          white-space: nowrap;
+        }
+
+        .float-brand-name span {
+          color: #FF2457;
+        }
+
+        .float-brand-tagline {
+          margin-top: 4px;
+
+          color: #8A8A8A;
+
+          font-size: 8px;
+
+          font-weight: 900;
+
+          letter-spacing: 1.4px;
+
+          white-space: nowrap;
+        }
+
+        /* =====================================================
+           TRACK ORDER
+        ===================================================== */
+
+        .float-track-order {
+          position: relative;
+
+          margin-left: 5px;
+
+          min-height: 36px;
+
+          padding:
+            7px 11px;
+
+          border-radius: 999px;
+
+          border:
+            1px solid
+            rgba(34,160,107,0.18);
+
+          background:
+            #F0FAF5;
+
+          color:
+            #16834B;
+
+          display: inline-flex;
+
+          align-items: center;
+
+          gap: 6px;
+
+          font-family:
+            var(--font-heading),
+            'Fredoka',
+            'Outfit',
+            sans-serif;
+
+          font-size: 11px;
+
+          font-weight: 800;
+
+          white-space: nowrap;
+
+          cursor: pointer;
+
+          transition:
+            transform 180ms ease,
+            box-shadow 180ms ease,
+            background 180ms ease;
+        }
+
+        .float-track-order:hover {
+          transform:
+            translateY(-1px);
+
+          background:
+            #E7F7EF;
+
+          box-shadow:
+            0 5px 14px
+              rgba(34,160,107,0.12);
+        }
+
+        .track-live-dot {
+          width: 7px;
+          height: 7px;
+
+          border-radius: 50%;
+
+          background:
+            #22A06B;
+
+          box-shadow:
+            0 0 0 4px
+              rgba(34,160,107,0.10);
+        }
+
+        .track-token {
+          padding:
+            3px 6px;
+
+          border-radius: 7px;
+
+          background:
+            rgba(34,160,107,0.10);
+
+          font-size: 10px;
+        }
+
+        /* =====================================================
+           RIGHT ACTIONS
+        ===================================================== */
+
+        .float-header-actions {
+          display: flex;
+
+          align-items: center;
+
+          gap: 7px;
+
+          flex-shrink: 0;
+        }
+
+        .float-table-chip {
+          display: inline-flex;
+
+          align-items: center;
+
+          gap: 6px;
+
+          min-height: 38px;
+
+          padding:
+            7px 11px;
+
+          border-radius: 999px;
+
+          background:
+            #F5F6FA;
+
+          border:
+            1px solid #E7E7EB;
+
+          color:
+            #555555;
+
+          font-size: 11px;
+
+          font-weight: 800;
+
+          white-space: nowrap;
+        }
+
+        .table-chip-dot {
+          width: 7px;
+          height: 7px;
+
+          border-radius: 50%;
+
+          background:
+            #FF2457;
+        }
+
+        .float-header-action {
+          position: relative;
+
+          min-height: 40px;
+
+          padding:
+            8px 13px;
+
+          border-radius: 13px;
+
+          display: inline-flex;
+
+          align-items: center;
+
+          justify-content: center;
+
+          gap: 6px;
+
+          font-family:
+            var(--font-heading),
+            'Fredoka',
+            'Outfit',
+            sans-serif;
+
+          font-size: 11px;
+
+          font-weight: 800;
+
+          cursor: pointer;
+
+          transition:
+            transform 180ms ease,
+            box-shadow 180ms ease,
+            background 180ms ease,
+            border-color 180ms ease;
+        }
+
+        .float-header-action:hover {
+          transform:
+            translateY(-2px);
+        }
+
+        .cart-action {
+          color:
+            #FF2457;
+
+          background:
+            #FFF0F4;
+
+          border:
+            1px solid
+            rgba(255,36,87,0.12);
+
+          box-shadow:
+            0 4px 11px
+              rgba(255,36,87,0.08);
+        }
+
+        .cart-action:hover {
+          background:
+            #FFE7ED;
+
+          box-shadow:
+            0 7px 17px
+              rgba(255,36,87,0.14);
+        }
+
+        .admin-action {
+          color:
+            #1F1F1F;
+
+          background:
+            #FFFFFF;
+
+          border:
+            1px solid #E7E7EB;
+
+          box-shadow:
+            0 3px 10px
+              rgba(31,31,31,0.045);
+        }
+
+        .admin-action:hover {
+          border-color:
+            rgba(255,36,87,0.20);
+
+          color:
+            #FF2457;
+        }
+
+        .float-cart-badge {
+          position: absolute;
+
+          top: -6px;
+          right: -6px;
+
+          min-width: 19px;
+          height: 19px;
+
+          padding:
+            0 5px;
+
+          display: flex;
+
+          align-items: center;
+          justify-content: center;
+
+          border-radius: 999px;
+
+          background:
+            #FF2457;
+
+          color: #FFFFFF;
+
+          border:
+            2px solid #FFFFFF;
+
+          font-size: 9px;
+
+          font-weight: 900;
+        }
+
+        /* =====================================================
+           THEME
+        ===================================================== */
+
+        .float-theme-button {
+          width: 40px;
+          height: 40px;
+
+          min-width: 40px;
+
+          border-radius: 13px;
+
+          display: flex;
+
+          align-items: center;
+          justify-content: center;
+
+          background:
+            #FFFFFF;
+
+          color:
+            #555555;
+
+          border:
+            1px solid #E7E7EB;
+
+          cursor: pointer;
+
+          transition:
+            transform 180ms ease,
+            background 180ms ease,
+            color 180ms ease;
+        }
+
+        .float-theme-button:hover {
+          transform:
+            rotate(8deg);
+
+          background:
+            #FFF0F4;
+
+          color:
+            #FF2457;
+        }
+
+        /* =====================================================
+           SEARCH
+        ===================================================== */
+
+        .float-search-shell {
+          position: relative;
+
+          margin-top: 10px;
+
+          height: 52px;
+
+          display: flex;
+
+          align-items: center;
+
+          padding:
+            5px 7px 5px 15px;
+
+          border-radius: 18px;
+
+          background:
+            #FFFFFF;
+
+          border:
+            1px solid #E7E7EB;
+
+          box-shadow:
+            0 5px 16px
+              rgba(31,31,31,0.045);
+
+          transition:
+            border-color 180ms ease,
+            box-shadow 180ms ease;
+        }
+
+        .float-search-shell:focus-within {
+          border-color:
+            rgba(255,36,87,0.30);
+
+          box-shadow:
+            0 7px 22px
+              rgba(255,36,87,0.10);
+        }
+
+        .float-search-icon {
+          display: flex;
+
+          align-items: center;
+
+          justify-content: center;
+
+          color:
+            #FF2457;
+
+          flex-shrink: 0;
+        }
+
+        .float-search-input {
+          flex: 1;
+
+          min-width: 0;
+
+          height: 100%;
+
+          border: 0;
+
+          outline: 0;
+
+          background:
+            transparent;
+
+          color:
+            #1F1F1F;
+
+          padding:
+            0 11px;
+
+          font-size: 13px;
+
+          font-weight: 600;
+
+          font-family:
+            var(--font-body),
+            'Outfit',
+            sans-serif;
+        }
+
+        .float-search-input::placeholder {
+          color:
+            #9A9AA1;
+
+          font-weight: 500;
+        }
+
+        .float-clear-search {
+          width: 29px;
+          height: 29px;
+
+          border-radius: 50%;
+
+          border: 0;
+
+          background:
+            #F5F6FA;
+
+          color:
+            #777777;
+
+          display: flex;
+
+          align-items: center;
+          justify-content: center;
+
+          font-size: 17px;
+
+          cursor: pointer;
+        }
+
+        .float-clear-search:hover {
+          background:
+            #FFE7ED;
+
+          color:
+            #FF2457;
+        }
+
+        .search-end-dot {
+          width: 40px;
+          height: 40px;
+
+          border-radius: 13px;
+
+          display: flex;
+
+          align-items: center;
+          justify-content: center;
+
+          background:
+            linear-gradient(
+              135deg,
+              #FF2457,
+              #FF4F78
+            );
+
+          color: #FFFFFF;
+
+          box-shadow:
+            0 5px 13px
+              rgba(255,36,87,0.22);
+        }
+
+        /* =====================================================
+           MOBILE
+        ===================================================== */
+
+        @media (max-width: 900px) {
+          .float-table-chip {
+            display: none;
+          }
+
+          .track-order-text {
+            display: none;
+          }
+
+          .float-track-order {
+            width: 36px;
+            height: 36px;
+
+            min-width: 36px;
+
+            padding: 0;
+
             justify-content: center;
+          }
 
-            min-height: 40px;
-            padding: 9px 17px;
+          .track-token {
+            display: none;
+          }
 
-            background: #D62300;
-            color: #FFFFFF;
+          .float-brand-tagline {
+            display: none;
+          }
+        }
 
-            border: 1px solid #D62300;
-            border-radius: 999px;
+        @media (max-width: 700px) {
+          .float247-header {
+            padding:
+              7px 0;
+          }
 
+          .float-header-main {
+            min-height: 55px;
+
+            padding:
+              7px 8px;
+
+            border-radius: 19px;
+
+            gap: 7px;
+          }
+
+          .float-logo-mark {
+            width: 38px;
+            height: 38px;
+
+            min-width: 38px;
+
+            border-radius: 12px;
+          }
+
+          .float-brand-name {
+            font-size: 18px;
+          }
+
+          .float-header-actions {
+            gap: 5px;
+          }
+
+          .float-header-action {
+            width: 38px;
+            height: 38px;
+
+            min-width: 38px;
+
+            padding: 0;
+
+            border-radius: 12px;
+          }
+
+          .action-label {
+            display: none;
+          }
+
+          .float-theme-button {
+            width: 38px;
+            height: 38px;
+
+            min-width: 38px;
+
+            border-radius: 12px;
+          }
+
+          .float-search-shell {
+            height: 48px;
+
+            border-radius: 16px;
+          }
+
+          .search-end-dot {
+            width: 36px;
+            height: 36px;
+
+            border-radius: 11px;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .float-header-main {
+            border-radius: 17px;
+          }
+
+          .float-logo-mark {
+            width: 35px;
+            height: 35px;
+
+            min-width: 35px;
+          }
+
+          .float-brand-name {
             font-size: 16px;
-            font-weight: 800;
-
-            font-family:
-              "Arial Rounded MT Bold",
-              "Trebuchet MS",
-              Arial,
-              sans-serif;
-
-            letter-spacing: -0.2px;
-            line-height: 1;
-
-            white-space: nowrap;
-
-            box-sizing: border-box;
-
-            box-shadow:
-              0 5px 14px rgba(214, 35, 0, 0.20);
-
-            transition:
-              transform 0.2s ease,
-              box-shadow 0.2s ease;
           }
 
-          .float-brand:hover {
-            transform: translateY(-2px);
+          .float-track-order {
+            width: 33px;
+            height: 33px;
 
-            box-shadow:
-              0 8px 18px rgba(214, 35, 0, 0.30);
+            min-width: 33px;
           }
 
+          .float-header-action {
+            width: 35px;
+            height: 35px;
 
-          /* ==========================================
-             CHEF AVATAR
-             ========================================== */
-
-          .resto-avatar {
-            background: #D62300 !important;
+            min-width: 35px;
           }
 
+          .float-theme-button {
+            width: 35px;
+            height: 35px;
 
-          /* ==========================================
-             TRACK ORDER BUTTON
-             ========================================== */
-
-          .live-order-btn {
-            display: inline-flex;
-
-            align-items: center;
-            justify-content: center;
-
-            gap: 7px;
-
-            min-height: 40px;
-
-            padding: 9px 15px;
-
-            border: none;
-            border-radius: 999px;
-
-            background: #43A72D;
-            color: #FFFFFF;
-
-            font-size: 13px;
-            font-weight: 800;
-
-            font-family:
-              "Arial Rounded MT Bold",
-              "Trebuchet MS",
-              Arial,
-              sans-serif;
-
-            cursor: pointer;
-
-            white-space: nowrap;
-
-            box-shadow:
-              0 5px 14px rgba(67, 167, 45, 0.20);
-
-            transition:
-              transform 0.2s ease,
-              background 0.2s ease,
-              box-shadow 0.2s ease;
+            min-width: 35px;
           }
 
-          .live-order-btn:hover {
-            background: #378D24;
-
-            transform: translateY(-2px);
-
-            box-shadow:
-              0 8px 18px rgba(67, 167, 45, 0.28);
+          .float-search-shell {
+            height: 45px;
           }
 
-          .live-order-btn:active {
-            transform: translateY(0);
+          .search-end-dot {
+            width: 33px;
+            height: 33px;
           }
+        }
 
-
-          /* ==========================================
-             YOUR TOKRI BUTTON
-             ========================================== */
-
-          .tokri-button {
-            position: relative;
-
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-
-            gap: 7px;
-
-            min-height: 40px;
-            padding: 9px 15px;
-
-            border: none;
-            border-radius: 999px;
-
-            background: #F9C80E;
-            color: #502314;
-
-            font-size: 13px;
-            font-weight: 800;
-
-            font-family:
-              "Arial Rounded MT Bold",
-              "Trebuchet MS",
-              Arial,
-              sans-serif;
-
-            cursor: pointer;
-            white-space: nowrap;
-
-            box-shadow:
-              0 5px 14px rgba(249, 200, 14, 0.30);
-
-            transition:
-              transform 0.2s ease,
-              background 0.2s ease,
-              box-shadow 0.2s ease;
+        @media (prefers-reduced-motion: reduce) {
+          .float-header-action,
+          .float-theme-button,
+          .float-track-order {
+            transition: none;
           }
-
-          .tokri-button:hover {
-            background: #E5B800;
-
-            transform: translateY(-2px);
-
-            box-shadow:
-              0 8px 18px rgba(249, 200, 14, 0.40);
-          }
-
-          .tokri-button:active {
-            transform: translateY(0);
-          }
-
-          .tokri-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-
-            min-width: 20px;
-            height: 20px;
-            padding: 0 6px;
-
-            border-radius: 999px;
-
-            background: #D62300;
-            color: #FFFFFF;
-
-            font-size: 11px;
-            font-weight: 800;
-            line-height: 1;
-          }
-
-
-          /* ==========================================
-             ADMIN PANEL BUTTON
-             ========================================== */
-
-          .admin-panel-button {
-            display: inline-flex;
-
-            align-items: center;
-            justify-content: center;
-
-            gap: 7px;
-
-            min-height: 40px;
-
-            padding: 9px 15px;
-
-            border: none;
-            border-radius: 999px;
-
-            background: #D62300;
-            color: #FFFFFF;
-
-            font-size: 13px;
-            font-weight: 800;
-
-            font-family:
-              "Arial Rounded MT Bold",
-              "Trebuchet MS",
-              Arial,
-              sans-serif;
-
-            cursor: pointer;
-
-            white-space: nowrap;
-
-            box-shadow:
-              0 5px 14px rgba(214, 35, 0, 0.20);
-
-            transition:
-              transform 0.2s ease,
-              background 0.2s ease,
-              box-shadow 0.2s ease;
-          }
-
-          .admin-panel-button:hover {
-            background: #B91F00;
-
-            transform: translateY(-2px);
-
-            box-shadow:
-              0 8px 18px rgba(214, 35, 0, 0.28);
-          }
-
-          .admin-panel-button:active {
-            transform: translateY(0);
-          }
-
-
-          /* ==========================================
-             THEME BUTTON
-             ========================================== */
-
-          .icon-btn-small {
-            width: 40px !important;
-            height: 40px !important;
-
-            min-width: 40px;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            border-radius: 50% !important;
-
-            border: 1px solid #E6DDD5 !important;
-
-            background: #FFF8E7 !important;
-
-            color: #502314 !important;
-
-            cursor: pointer;
-
-            transition:
-              transform 0.2s ease,
-              background 0.2s ease;
-          }
-
-          .icon-btn-small:hover {
-            background: #F9C80E !important;
-
-            transform: rotate(10deg);
-          }
-
-
-          /* ==========================================
-             MOBILE
-             ========================================== */
-
-          @media (max-width: 600px) {
-
-            .resto-hero-card {
-              gap: 8px !important;
-            }
-
-            .float-brand {
-              font-size: 14px;
-
-              min-height: 36px;
-
-              padding: 8px 12px;
-            }
-
-            .live-order-btn {
-              min-height: 36px;
-
-              padding: 8px 11px;
-
-              font-size: 12px;
-
-              gap: 5px;
-            }
-
-            .live-order-btn svg {
-              width: 14px;
-              height: 14px;
-            }
-
-            .tokri-button {
-              min-height: 36px;
-
-              padding: 8px 11px;
-
-              font-size: 12px;
-
-              gap: 5px;
-            }
-
-            .tokri-button svg {
-              width: 14px;
-              height: 14px;
-            }
-
-            .admin-panel-button {
-              min-height: 36px;
-
-              padding: 8px 11px;
-
-              font-size: 12px;
-
-              gap: 5px;
-            }
-
-            .admin-panel-button svg {
-              width: 14px;
-              height: 14px;
-            }
-
-            .icon-btn-small {
-              width: 36px !important;
-              height: 36px !important;
-
-              min-width: 36px;
-            }
-
-          }
-
-
-          /* ==========================================
-             SMALL MOBILE
-             ========================================== */
-
-          @media (max-width: 420px) {
-
-            .float-brand {
-              font-size: 13px;
-
-              padding: 7px 10px;
-            }
-
-            .live-order-btn span {
-              display: none;
-            }
-
-            .live-order-btn {
-              width: 36px;
-              height: 36px;
-
-              min-width: 36px;
-
-              padding: 0;
-            }
-
-            .tokri-button span:not(.tokri-badge) {
-              display: none;
-            }
-
-            .tokri-button {
-              width: 36px;
-              height: 36px;
-
-              min-width: 36px;
-
-              padding: 0;
-            }
-
-            .tokri-badge {
-              position: absolute;
-
-              top: -6px;
-              right: -6px;
-
-              min-width: 18px;
-              height: 18px;
-
-              font-size: 10px;
-            }
-
-            .admin-panel-button span {
-              display: none;
-            }
-
-            .admin-panel-button {
-              width: 36px;
-              height: 36px;
-
-              min-width: 36px;
-
-              padding: 0;
-            }
-
-            .icon-btn-small {
-              width: 36px !important;
-              height: 36px !important;
-            }
-
-          }
-
-
-          /* ==========================================
-             VERY SMALL MOBILE
-             ========================================== */
-
-          @media (max-width: 350px) {
-
-            .float-brand {
-              font-size: 12px;
-
-              padding: 7px 9px;
-            }
-
-          }
-
-        `}
-      </style>
-    </>
-  );
-};
+        }
+      `}</style>
+      </>
+    );
+  };
+
+export default RestaurantHeader;

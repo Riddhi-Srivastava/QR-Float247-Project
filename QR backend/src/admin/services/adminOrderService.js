@@ -1,12 +1,6 @@
 require("dotenv").config();
-const { PrismaClient } = require("@prisma/client");
-const { PrismaPg } = require("@prisma/adapter-pg");
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
-const prisma = new PrismaClient({
-  adapter,
-});
+const crypto = require("crypto");
+const prisma = require("../../config/prisma");
 // Get all orders
 const getAllOrders = async () => {
   return await prisma.order.findMany({
@@ -47,6 +41,7 @@ const updateOrderStatus = async (id, status) => {
 
     await tx.orderStatusHistory.create({
       data: {
+        id: crypto.randomUUID(),
         status,
         orderId: id,
       },

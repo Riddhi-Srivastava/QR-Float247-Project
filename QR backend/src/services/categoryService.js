@@ -1,15 +1,6 @@
 require("dotenv").config();
 
-const { PrismaClient } = require("@prisma/client");
-const { PrismaPg } = require("@prisma/adapter-pg");
-
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
-
-const prisma = new PrismaClient({
-  adapter,
-});
+const prisma = require("../config/prisma");
 
 const createCategory = async ({ name, icon, image }) => {
   const existingCategory = await prisma.category.findUnique({
@@ -50,38 +41,36 @@ const getCategoryById = async (id) => {
 };
 
 const updateCategory = async (id, data) => {
-  const existingCategory = await prisma.category.findUnique({
-    where: { id },
-  });
-
-  if (!existingCategory) {
-    throw new Error("Category not found");
+  try {
+    return await prisma.category.update({
+      where: { id },
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.icon !== undefined && { icon: data.icon }),
+        ...(data.image !== undefined && { image: data.image }),
+      },
+    });
+  } catch (error) {
+    if (error.code === "P2025") {
+      throw new Error("Category not found");
+    }
+    throw error;
   }
-
-  return await prisma.category.update({
-    where: { id },
-    data: {
-      ...(data.name !== undefined && { name: data.name }),
-      ...(data.icon !== undefined && { icon: data.icon }),
-      ...(data.image !== undefined && { image: data.image }),
-    },
-  });
 };
 
 const deleteCategory = async (id) => {
-  const existingCategory = await prisma.category.findUnique({
-    where: { id },
-  });
+  try {
+    await prisma.category.delete({
+      where: { id },
+    });
 
-  if (!existingCategory) {
-    throw new Error("Category not found");
+    return { id };
+  } catch (error) {
+    if (error.code === "P2025") {
+      throw new Error("Category not found");
+    }
+    throw error;
   }
-
-  await prisma.category.delete({
-    where: { id },
-  });
-
-  return { id };
 };
 
 module.exports = {

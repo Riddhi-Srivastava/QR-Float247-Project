@@ -4,16 +4,7 @@ const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-const { PrismaClient } = require("@prisma/client");
-const { PrismaPg } = require("@prisma/adapter-pg");
-
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
-
-const prisma = new PrismaClient({
-  adapter,
-});
+const prisma = require("../config/prisma");
 
 const registerUser = async ({ name, email, phone, password }) => {
   const existingUser = await prisma.user.findUnique({
@@ -67,7 +58,7 @@ const loginUser = async ({ email, password }) => {
     },
     process.env.JWT_SECRET,
     {
-      expiresIn: "7d",
+      expiresIn: process.env.JWT_EXPIRES_IN || "8h",
     }
   );
 

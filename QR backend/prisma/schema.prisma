@@ -6,7 +6,7 @@ datasource db {
   provider = "postgresql"
 }
 
-enum UserRole {
+enum UserRole { 
   CUSTOMER
   ADMIN
   RESTAURANT
@@ -144,6 +144,10 @@ model FoodItem {
   orderItems OrderItem[]
   favorites  Favorite[]
   cartItems  CartItem[]
+
+  @@index([restaurantId])
+  @@index([categoryId])
+  @@index([available])
 }
 
 model RestaurantTable {
@@ -155,6 +159,8 @@ model RestaurantTable {
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 
   currentOrderId String?
+
+  @@index([restaurantId])
 }
 
 model Cart {
@@ -218,6 +224,12 @@ model Order {
   items         OrderItem[]
   statusHistory OrderStatusHistory[]
   payment       Payment?
+
+  @@index([guestId])
+  @@index([userId])
+  @@index([restaurantId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model OrderItem {
@@ -233,6 +245,9 @@ model OrderItem {
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   food FoodItem @relation(fields: [foodId], references: [id])
+
+  @@index([orderId])
+  @@index([foodId])
 }
 
 model OrderStatusHistory {
@@ -242,6 +257,8 @@ model OrderStatusHistory {
 
   orderId String
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
 }
 
 model Payment {
@@ -284,6 +301,8 @@ model Review {
   title        String
   comment      String
   date         DateTime @default(now())
+
+  @@index([restaurantId])
 }
 
 model Notification {
@@ -296,6 +315,8 @@ model Notification {
   timestamp DateTime         @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Address {
@@ -310,6 +331,8 @@ model Address {
   city      String
   pincode   String?
   isDefault Boolean @default(false)
+
+  @@index([userId])
 }
 
 model Favorite {

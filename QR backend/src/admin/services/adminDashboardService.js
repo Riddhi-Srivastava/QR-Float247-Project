@@ -1,15 +1,6 @@
 require("dotenv").config();
 
-const { PrismaClient } = require("@prisma/client");
-const { PrismaPg } = require("@prisma/adapter-pg");
-
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
-
-const prisma = new PrismaClient({
-  adapter,
-});
+const prisma = require("../../config/prisma");
 
 const getDashboardStats = async () => {
   const [
@@ -21,6 +12,7 @@ const getDashboardStats = async () => {
     activeCoupons,
     completedOrders,
     cancelledOrders,
+    revenueResult,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.restaurant.count(),
@@ -42,16 +34,15 @@ const getDashboardStats = async () => {
         status: "CANCELLED",
       },
     }),
+    prisma.order.aggregate({
+      _sum: {
+        total: true,
+      },
+      where: {
+        status: "COMPLETED",
+      },
+    }),
   ]);
-
-  const revenueResult = await prisma.order.aggregate({
-    _sum: {
-      total: true,
-    },
-    where: {
-      status: "COMPLETED",
-    },
-  });
 
   return {
     users: {

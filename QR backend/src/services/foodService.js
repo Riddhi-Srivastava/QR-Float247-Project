@@ -2,16 +2,7 @@ require("dotenv").config();
 
 const crypto = require("crypto");
 
-const { PrismaClient } = require("@prisma/client");
-const { PrismaPg } = require("@prisma/adapter-pg");
-
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
-
-const prisma = new PrismaClient({
-  adapter,
-});
+const prisma = require("../config/prisma");
 
 // CREATE FOOD
 const createFood = async ({
@@ -27,17 +18,14 @@ const createFood = async ({
   restaurantId,
   categoryId,
 }) => {
-  const restaurant = await prisma.restaurant.findUnique({
-    where: { id: restaurantId },
-  });
+  const [restaurant, category] = await Promise.all([
+    prisma.restaurant.findUnique({ where: { id: restaurantId } }),
+    prisma.category.findUnique({ where: { id: categoryId } }),
+  ]);
 
   if (!restaurant) {
     throw new Error("Restaurant not found");
   }
-
-  const category = await prisma.category.findUnique({
-    where: { id: categoryId },
-  });
 
   if (!category) {
     throw new Error("Category not found");
@@ -109,81 +97,79 @@ const getFoodById = async (id) => {
 
 // UPDATE FOOD
 const updateFood = async (id, data) => {
-  const existingFood = await prisma.foodItem.findUnique({
-    where: { id },
-  });
+  try {
+    return await prisma.foodItem.update({
+      where: { id },
+      data: {
+        ...(data.name !== undefined && {
+          name: data.name,
+        }),
 
-  if (!existingFood) {
-    throw new Error("Food item not found");
+        ...(data.description !== undefined && {
+          description: data.description,
+        }),
+
+        ...(data.price !== undefined && {
+          price: data.price,
+        }),
+
+        ...(data.veg !== undefined && {
+          veg: data.veg,
+        }),
+
+        ...(data.image !== undefined && {
+          image: data.image,
+        }),
+
+        ...(data.prepTime !== undefined && {
+          prepTime: data.prepTime,
+        }),
+
+        ...(data.available !== undefined && {
+          available: data.available,
+        }),
+
+        ...(data.popular !== undefined && {
+          popular: data.popular,
+        }),
+
+        ...(data.featured !== undefined && {
+          featured: data.featured,
+        }),
+
+        ...(data.restaurantId !== undefined && {
+          restaurantId: data.restaurantId,
+        }),
+
+        ...(data.categoryId !== undefined && {
+          categoryId: data.categoryId,
+        }),
+      },
+    });
+  } catch (error) {
+    if (error.code === "P2025") {
+      throw new Error("Food item not found");
+    }
+    throw error;
   }
-
-  return await prisma.foodItem.update({
-    where: { id },
-    data: {
-      ...(data.name !== undefined && {
-        name: data.name,
-      }),
-
-      ...(data.description !== undefined && {
-        description: data.description,
-      }),
-
-      ...(data.price !== undefined && {
-        price: data.price,
-      }),
-
-      ...(data.veg !== undefined && {
-        veg: data.veg,
-      }),
-
-      ...(data.image !== undefined && {
-        image: data.image,
-      }),
-
-      ...(data.prepTime !== undefined && {
-        prepTime: data.prepTime,
-      }),
-
-      ...(data.available !== undefined && {
-        available: data.available,
-      }),
-
-      ...(data.popular !== undefined && {
-        popular: data.popular,
-      }),
-
-      ...(data.featured !== undefined && {
-        featured: data.featured,
-      }),
-
-      ...(data.restaurantId !== undefined && {
-        restaurantId: data.restaurantId,
-      }),
-
-      ...(data.categoryId !== undefined && {
-        categoryId: data.categoryId,
-      }),
-    },
-  });
 };
 
 // DELETE FOOD
 const deleteFood = async (id) => {
-  const existingFood = await prisma.foodItem.findUnique({
-    where: { id },
-  });
+  try {
+    await prisma.foodItem.delete({
+      where: { id },
+    });
 
-  if (!existingFood) {
-    throw new Error("Food item not found");
+    return {
+      id,
+    };
+  } catch (error) {
+    if (error.code === "P2025") {
+      throw new Error("Food item not found");
+    }
+    throw error;
   }
-
-  await prisma.foodItem.delete({
-    where: { id },
-  });
-
-  return {
-    id,
-  };
 };
 
 module.exports = {

@@ -6,7 +6,7 @@ import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 're
 
 
 
-import api, { getGuestId } from './lib/api';
+import api, { isTokenValid, clearAdminSessionStorage } from './lib/api';
 
 
 
@@ -313,71 +313,127 @@ const GuestView: React.FC<{
 
 
 
-  const navigate = useNavigate();
+    const navigate = useNavigate();
 
 
 
-  const location = useLocation();
+    const location = useLocation();
 
 
 
-  const tableId = new URLSearchParams(location.search).get('table');
+    const tableId = new URLSearchParams(location.search).get('table');
 
 
 
-  const [activeView, setActiveView] = useState<
+    const [activeView, setActiveView] = useState<
 
 
 
-    'menu' | 'success' | 'tracker'
+      'menu' | 'success' | 'tracker'
 
 
 
-  >('menu');
+    >('menu');
 
 
 
-  // Keep the existing guest UI/state, but expose each customer flow as a real route.
+    // Keep the existing guest UI/state, but expose each customer flow as a real route.
 
 
 
-  useEffect(() => {
+    useEffect(() => {
 
 
 
-    const path = location.pathname;
+      const path = location.pathname;
 
 
 
-    if (path === '/cart') {
+      if (path === '/cart') {
 
 
 
-      setActiveView('menu');
+        setActiveView('menu');
 
 
 
-      setIsCartOpen(true);
+        setIsCartOpen(true);
 
 
 
-      setIsCheckoutOpen(false);
+        setIsCheckoutOpen(false);
 
 
 
-      return;
+        return;
 
 
 
-    }
+      }
 
 
 
-    if (path === '/checkout') {
+      if (path === '/checkout') {
 
 
 
-      setActiveView('menu');
+        setActiveView('menu');
+
+
+
+        setIsCartOpen(false);
+
+
+
+        setIsCheckoutOpen(true);
+
+
+
+        return;
+
+
+
+      }
+
+
+
+      if (path.startsWith('/track-order/')) {
+
+
+
+        setActiveView('tracker');
+
+
+
+        return;
+
+
+
+      }
+
+
+
+      if (path.startsWith('/order/')) {
+
+
+
+        setIsCartOpen(false);
+
+
+
+        setIsCheckoutOpen(false);
+
+
+
+        setActiveView('success');
+
+
+
+        return;
+
+
+
+      }
 
 
 
@@ -385,426 +441,244 @@ const GuestView: React.FC<{
 
 
 
-      setIsCheckoutOpen(true);
-
-
-
-      return;
-
-
-
-    }
-
-
-
-    if (path.startsWith('/track-order/')) {
-
-
-
-      setActiveView('tracker');
-
-
-
-      return;
-
-
-
-    }
-
-
-
-    if (path.startsWith('/order/')) {
-
-
-
-      setIsCartOpen(false);
-
-
-
       setIsCheckoutOpen(false);
 
 
 
-      setActiveView('success');
+      setActiveView('menu');
 
 
 
-      return;
+    }, [location.pathname]);
 
 
+    useEffect(() => {
+      if (!routeOrderId) return;
 
-    }
+      const loadOrder = async () => {
+        try {
+          const response = await api.get(
+            `/orders/${routeOrderId}`
+          );
 
+          const backendOrder = response.data?.order;
 
+          if (!backendOrder) return;
 
-    setIsCartOpen(false);
+          const restoredItems: CartItem[] = Array.isArray(backendOrder.items)
+            ? backendOrder.items.map((item: any, index: number) => {
+              const food = item?.food || {};
+              const matchedMenuItem = menuItemsList.find(
+                menuItem =>
+                  String(menuItem.id) ===
+                  String(item?.foodId || food?.id)
+              );
 
-
-
-    setIsCheckoutOpen(false);
-
-
-
-    setActiveView('menu');
-
-
-
-  }, [location.pathname]);
-
-
-useEffect(() => {
-  if (!routeOrderId) return;
-
-  const loadOrder = async () => {
-    try {
-      const response = await api.get(
-        `/orders/${routeOrderId}`
-      );
-
-      const backendOrder = response.data?.order;
-
-      if (!backendOrder) return;
-
-      const restoredItems: CartItem[] = Array.isArray(backendOrder.items)
-        ? backendOrder.items.map((item: any, index: number) => {
-            const food = item?.food || {};
-            const matchedMenuItem = menuItemsList.find(
-              menuItem =>
-                String(menuItem.id) ===
-                String(item?.foodId || food?.id)
-            );
-
-            const fallbackMenuItem = {
-              id: String(item?.foodId || food?.id || `food-${index}`),
-              name: String(
-                item?.name ||
+              const fallbackMenuItem = {
+                id: String(item?.foodId || food?.id || `food-${index}`),
+                name: String(
+                  item?.name ||
                   food?.name ||
                   'Unknown Item'
-              ),
-              description: String(
-                food?.description || ''
-              ),
-              price: Number(
-                item?.price || food?.price || 0
-              ),
-              category: String(
-                item?.category ||
+                ),
+                description: String(
+                  food?.description || ''
+                ),
+                price: Number(
+                  item?.price || food?.price || 0
+                ),
+                category: String(
+                  item?.category ||
                   food?.categoryId ||
                   'all'
-              ) as MenuItem['category'],
-              image: String(
-                item?.image || food?.image || ''
-              ),
-              dietary:
-                food?.veg === 'VEG'
-                  ? 'veg'
-                  : 'non-veg',
-              rating: Number(food?.rating || 0),
-              ratingCount: Number(
-                food?.ratingCount || 0
-              ),
-              prepTimeMinutes: Number(
-                food?.prepTime || 0
-              ),
-              isAvailable: true,
-              isBestseller: Boolean(
-                food?.popular
-              ),
-              isChefSpecial: Boolean(
-                food?.featured
-              ),
-            } as MenuItem;
+                ) as MenuItem['category'],
+                image: String(
+                  item?.image || food?.image || ''
+                ),
+                dietary:
+                  food?.veg === 'VEG'
+                    ? 'veg'
+                    : 'non-veg',
+                rating: Number(food?.rating || 0),
+                ratingCount: Number(
+                  food?.ratingCount || 0
+                ),
+                prepTimeMinutes: Number(
+                  food?.prepTime || 0
+                ),
+                isAvailable: true,
+                isBestseller: Boolean(
+                  food?.popular
+                ),
+                isChefSpecial: Boolean(
+                  food?.featured
+                ),
+              } as MenuItem;
 
-            const menuItem =
-              matchedMenuItem || fallbackMenuItem;
+              const menuItem =
+                matchedMenuItem || fallbackMenuItem;
 
-            const quantity = Number(
-              item?.quantity || 0
-            );
-            const unitPrice = Number(
-              item?.price ||
+              const quantity = Number(
+                item?.quantity || 0
+              );
+              const unitPrice = Number(
+                item?.price ||
                 food?.price ||
                 menuItem.price ||
                 0
-            );
+              );
 
-            return {
-              cartItemId: String(
-                item?.id ||
+              return {
+                cartItemId: String(
+                  item?.id ||
                   `restored-${index}`
-              ),
-              item: menuItem,
-              quantity,
-              customization: {
-                selectedVariant: undefined,
-                selectedAddons: [],
-                specialInstructions: undefined,
-              },
-              itemTotalPrice: unitPrice * quantity,
-            };
-          })
-        : [];
+                ),
+                item: menuItem,
+                quantity,
+                customization: {
+                  selectedVariant: undefined,
+                  selectedAddons: [],
+                  specialInstructions: undefined,
+                },
+                itemTotalPrice: unitPrice * quantity,
+              };
+            })
+            : [];
 
-      const restoredOrder: Order = {
-        orderId: backendOrder.id,
-        tokenNumber: backendOrder.tokenNumber,
-        tableNumber: backendOrder.tableNumber,
-        customerName: backendOrder.customerName,
-        customerPhone: backendOrder.customerPhone,
-        items: restoredItems,
-        subtotal: Number(backendOrder.subtotal),
-        tax: Number(backendOrder.tax),
-        serviceCharge: 0,
-        tip: 0,
-        discount: Number(backendOrder.discount),
-        total: Number(backendOrder.total),
+          const restoredOrder: Order = {
+            orderId: backendOrder.id,
+            tokenNumber: backendOrder.tokenNumber,
+            tableNumber: backendOrder.tableNumber,
+            customerName: backendOrder.customerName,
+            customerPhone: backendOrder.customerPhone,
+            items: restoredItems,
+            subtotal: Number(backendOrder.subtotal),
+            tax: Number(backendOrder.tax),
+            serviceCharge: 0,
+            tip: 0,
+            discount: Number(backendOrder.discount),
+            total: Number(backendOrder.total),
 
-        status: String(
-          backendOrder.status || 'RECEIVED'
-        ).toLowerCase() as OrderStatus,
+            status: String(
+              backendOrder.status || 'RECEIVED'
+            ).toLowerCase() as OrderStatus,
 
-        // IMPORTANT: original backend order time
-        createdAt: backendOrder.createdAt,
+            // IMPORTANT: original backend order time
+            createdAt: backendOrder.createdAt,
 
-        estimatedDeliveryTime:
-          backendOrder.estimatedPrepTime
-            ? `${backendOrder.estimatedPrepTime} Mins`
-            : '10-15 Mins',
+            estimatedDeliveryTime:
+              backendOrder.estimatedPrepTime
+                ? `${backendOrder.estimatedPrepTime} Mins`
+                : '10-15 Mins',
 
-        paymentMethod:
-          String(
-            backendOrder.paymentMethod || 'CASH'
-          ).toLowerCase() as
-            | 'counter'
-            | 'upi'
-            | 'card',
+            paymentMethod:
+              String(
+                backendOrder.paymentMethod || 'CASH'
+              ).toLowerCase() as
+              | 'counter'
+              | 'upi'
+              | 'card',
 
-        specialNotes:
-          backendOrder.specialInstructions || '',
+            specialNotes:
+              backendOrder.specialInstructions || '',
+          };
+
+          setActiveOrder(restoredOrder);
+        } catch (error) {
+          console.error(
+            'Failed to restore order:',
+            error
+          );
+        }
       };
 
-      setActiveOrder(restoredOrder);
-    } catch (error) {
-      console.error(
-        'Failed to restore order:',
-        error
-      );
-    }
-  };
+      loadOrder();
+    }, [routeOrderId, setActiveOrder]);
 
-  loadOrder();
-}, [routeOrderId, setActiveOrder]);
-  
 
-  const [selectedCategory, setSelectedCategory] =
+    const [selectedCategory, setSelectedCategory] =
 
 
 
-    useState<string>('all');
+      useState<string>('all');
 
 
 
-  const [dietaryFilter, setDietaryFilter] = useState<
+    const [dietaryFilter, setDietaryFilter] = useState<
 
 
 
-    'all' | 'veg' | 'non-veg' | 'specials'
+      'all' | 'veg' | 'non-veg' | 'specials'
 
 
 
-  >('all');
+    >('all');
 
 
 
-  const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
 
 
 
-  const [selectedItemForDetail, setSelectedItemForDetail] =
+    const [selectedItemForDetail, setSelectedItemForDetail] =
 
 
 
-    useState<MenuItem | null>(null);
+      useState<MenuItem | null>(null);
 
 
 
-  const [isCartOpen, setIsCartOpen] = useState(false);
+    const [isCartOpen, setIsCartOpen] = useState(false);
 
 
 
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+    const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 
 
 
-  const [isWaiterModalOpen, setIsWaiterModalOpen] = useState(false);
+    const [isWaiterModalOpen, setIsWaiterModalOpen] = useState(false);
 
 
 
-  const [tipAmount, setTipAmount] = useState(0);
+    const [tipAmount, setTipAmount] = useState(0);
 
 
 
-  const [includeCutlery, setIncludeCutlery] = useState(true);
+    const [includeCutlery, setIncludeCutlery] = useState(true);
+    const [, setServiceRequests] = useState<ServiceRequest[]>([]);
 
+    // Add-to-cart success popup state.
+    const [cartToast, setCartToast] = useState<{
+      visible: boolean;
+      itemName: string;
+    }>({
+      visible: false,
+      itemName: '',
+    });
 
 
-  const [serviceRequests, setServiceRequests] =
 
 
 
-    useState<ServiceRequest[]>([]);
 
 
+    const filteredItems = menuItemsList.filter(item => {
 
-  const filteredItems = menuItemsList.filter(item => {
 
 
+      if (
 
-    if (
 
 
+        selectedCategory !== 'all' &&
 
-      selectedCategory !== 'all' &&
 
 
+        item.category !== selectedCategory
 
-      item.category !== selectedCategory
 
 
-
-    ) {
-
-
-
-      return false;
-
-
-
-    }
-
-
-
-    if (
-
-
-
-      dietaryFilter === 'veg' &&
-
-
-
-      item.dietary !== 'veg' &&
-
-
-
-      item.dietary !== 'vegan'
-
-
-
-    ) {
-
-
-
-      return false;
-
-
-
-    }
-
-
-
-    if (
-
-
-
-      dietaryFilter === 'non-veg' &&
-
-
-
-      item.dietary !== 'non-veg'
-
-
-
-    ) {
-
-
-
-      return false;
-
-
-
-    }
-
-
-
-    if (
-
-
-
-      dietaryFilter === 'specials' &&
-
-
-
-      !item.isBestseller
-
-
-
-    ) {
-
-
-
-      return false;
-
-
-
-    }
-
-
-
-    if (searchQuery.trim()) {
-
-
-
-      const q = searchQuery.toLowerCase();
-
-
-
-      const matchName = item.name
-
-
-
-        .toLowerCase()
-
-
-
-        .includes(q);
-
-
-
-      const matchDesc = item.description
-
-
-
-        .toLowerCase()
-
-
-
-        .includes(q);
-
-
-
-      const matchCat = item.category
-
-
-
-        .toLowerCase()
-
-
-
-        .includes(q);
-
-
-
-      if (!matchName && !matchDesc && !matchCat) {
+      ) {
 
 
 
@@ -816,87 +690,179 @@ useEffect(() => {
 
 
 
-    }
+      if (
 
 
 
-    return true;
+        dietaryFilter === 'veg' &&
 
 
 
-  });
+        item.dietary !== 'veg' &&
 
 
 
-  const handleAddToCart = async (
+        item.dietary !== 'vegan'
 
 
 
-    item: MenuItem,
+      ) {
 
 
 
-    quantity: number,
+        return false;
 
 
 
-    customization: CartCustomization
+      }
 
 
 
-  ) => {
+      if (
 
 
 
-    const normalizedQuantity = Math.max(
+        dietaryFilter === 'non-veg' &&
 
 
 
-      1,
+        item.dietary !== 'non-veg'
 
 
 
-      Number(quantity) || 1
+      ) {
 
 
 
-    );
+        return false;
 
 
 
-    const basePrice =
+      }
 
 
 
-      item.price +
+      if (
 
 
 
-      (customization.selectedVariant
+        dietaryFilter === 'specials' &&
 
 
 
-        ? customization.selectedVariant.priceDelta
+        !item.isBestseller
 
 
 
-        : 0);
+      ) {
 
 
 
-    const addonsTotal =
+        return false;
 
 
 
-      customization.selectedAddons.reduce(
+      }
 
 
 
-        (acc, addon) => acc + addon.price,
+      if (searchQuery.trim()) {
 
 
 
-        0
+        const q = searchQuery.toLowerCase();
+
+
+
+        const matchName = item.name
+
+
+
+          .toLowerCase()
+
+
+
+          .includes(q);
+
+
+
+        const matchDesc = item.description
+
+
+
+          .toLowerCase()
+
+
+
+          .includes(q);
+
+
+
+        const matchCat = item.category
+
+
+
+          .toLowerCase()
+
+
+
+          .includes(q);
+
+
+
+        if (!matchName && !matchDesc && !matchCat) {
+
+
+
+          return false;
+
+
+
+        }
+
+
+
+      }
+
+
+
+      return true;
+
+
+
+    });
+
+
+
+    const handleAddToCart = async (
+
+
+
+      item: MenuItem,
+
+
+
+      quantity: number,
+
+
+
+      customization: CartCustomization
+
+
+
+    ) => {
+
+
+
+      const normalizedQuantity = Math.max(
+
+
+
+        1,
+
+
+
+        Number(quantity) || 1
 
 
 
@@ -904,88 +870,39 @@ useEffect(() => {
 
 
 
-    const unitPrice = basePrice + addonsTotal;
+      const basePrice =
 
 
 
-    try {
+        item.price +
 
 
 
-      const response = await api.post('/cart/items', {
+        (customization.selectedVariant
 
 
 
-        foodId: item.id,
+          ? customization.selectedVariant.priceDelta
 
 
 
-        itemId: item.id,
+          : 0);
 
 
 
-        menuItemId: item.id,
+      const addonsTotal =
 
 
 
-        quantity: normalizedQuantity,
+        customization.selectedAddons.reduce(
 
 
 
-        variantId:
+          (acc, addon) => acc + addon.price,
 
 
 
-          customization.selectedVariant?.id,
-
-
-
-        addonIds:
-
-
-
-          customization.selectedAddons.map(
-
-
-
-            addon => addon.id
-
-
-
-          ),
-
-
-
-      });
-
-
-
-      const backendCartItem = response.data?.item;
-    invalidateGetCache('cart:');
-
-
-
-      const serverQuantity =
-
-
-
-        backendCartItem?.quantity ??
-
-
-
-        normalizedQuantity;
-
-
-
-      setCartItems(prev => {
-
-
-
-        const existing = prev.find(
-
-
-
-          cartItem => cartItem.item.id === item.id
+          0
 
 
 
@@ -993,19 +910,108 @@ useEffect(() => {
 
 
 
-        if (existing) {
+      const unitPrice = basePrice + addonsTotal;
 
 
 
-          return prev.map(cartItem =>
+      try {
 
 
 
-            cartItem.item.id === item.id
+        const response = await api.post('/cart/items', {
 
 
 
-              ? {
+          foodId: item.id,
+
+
+
+          itemId: item.id,
+
+
+
+          menuItemId: item.id,
+
+
+
+          quantity: normalizedQuantity,
+
+
+
+          variantId:
+
+
+
+            customization.selectedVariant?.id,
+
+
+
+          addonIds:
+
+
+
+            customization.selectedAddons.map(
+
+
+
+              addon => addon.id
+
+
+
+            ),
+
+
+
+        });
+
+
+
+        const backendCartItem = response.data?.item;
+        invalidateGetCache('cart:');
+
+
+
+        const serverQuantity =
+
+
+
+          backendCartItem?.quantity ??
+
+
+
+          normalizedQuantity;
+
+
+
+        setCartItems(prev => {
+
+
+
+          const existing = prev.find(
+
+
+
+            cartItem => cartItem.item.id === item.id
+
+
+
+          );
+
+
+
+          if (existing) {
+
+
+
+            return prev.map(cartItem =>
+
+
+
+              cartItem.item.id === item.id
+
+
+
+                ? {
 
 
 
@@ -1029,87 +1035,100 @@ useEffect(() => {
 
 
 
-              : cartItem
+                : cartItem
 
 
 
-          );
+            );
 
 
 
-        }
+          }
 
 
 
-        return [
+          return [
 
 
 
-          ...prev,
+            ...prev,
 
 
 
-          {
+            {
 
 
 
-            cartItemId:
+              cartItemId:
 
 
 
-              backendCartItem?.id ??
+                backendCartItem?.id ??
 
 
 
-              `${item.id}-${Date.now()}`,
+                `${item.id}-${Date.now()}`,
 
 
 
-            item,
+              item,
 
 
 
-            quantity: serverQuantity,
+              quantity: serverQuantity,
 
 
 
-            customization,
+              customization,
 
 
 
-            itemTotalPrice:
+              itemTotalPrice:
 
 
 
-              serverQuantity * unitPrice,
+                serverQuantity * unitPrice,
 
 
 
-          },
+            },
 
 
 
-        ];
+          ];
 
 
 
-      });
+        });
+
+        // Show the existing add-to-cart feedback after the backend/cart update succeeds.
+        setCartToast({
+          visible: true,
+          itemName: item.name,
+        });
+
+        window.setTimeout(() => {
+          setCartToast({
+            visible: false,
+            itemName: '',
+          });
+        }, 2200);
 
 
 
-    } catch (error: any) {
+      } catch (error: any) {
 
 
 
-      console.error(
+        console.error(
 
 
 
-        'Failed to add item to backend cart:',
+          'Failed to add item to backend cart:',
 
 
 
-        error?.response?.data ||
+          error?.response?.data ||
 
 
 
@@ -1121,148 +1140,148 @@ useEffect(() => {
 
 
 
+        );
+
+
+
+      }
+
+
+
+    };
+
+
+
+    const handleQuickAdd = (item: MenuItem) => {
+
+
+
+      handleAddToCart(item, 1, {
+
+
+
+        selectedVariant:
+
+
+
+          item.variants &&
+
+
+
+            item.variants.length > 0
+
+
+
+            ? item.variants[0]
+
+
+
+            : undefined,
+
+
+
+        selectedAddons: [],
+
+
+
+        specialInstructions: undefined,
+
+
+
+      });
+
+
+
+    };
+
+
+
+    const handleIncrement = async (
+
+
+
+      cartItemId: string
+
+
+
+    ) => {
+
+
+
+      const target = cartItems.find(
+
+
+
+        item => item.cartItemId === cartItemId
+
+
+
       );
 
 
 
-    }
+      if (!target) return;
 
 
 
-  };
+      try {
 
 
 
-  const handleQuickAdd = (item: MenuItem) => {
+        const newQuantity = target.quantity + 1;
 
 
 
-    handleAddToCart(item, 1, {
+        await api.put(
 
 
 
-      selectedVariant:
+          `/cart/items/${cartItemId}`,
 
 
 
-        item.variants &&
+          {
 
 
 
-        item.variants.length > 0
+            quantity: newQuantity,
 
 
 
-          ? item.variants[0]
+          }
 
 
 
-          : undefined,
+        );
+        invalidateGetCache('cart:');
 
 
 
-      selectedAddons: [],
+        const unitPrice =
 
 
 
-      specialInstructions: undefined,
+          target.itemTotalPrice /
 
 
 
-    });
+          target.quantity;
 
 
 
-  };
+        setCartItems(prev =>
 
 
 
-  const handleIncrement = async (
+          prev.map(item =>
 
 
 
-    cartItemId: string
+            item.cartItemId === cartItemId
 
 
 
-  ) => {
-
-
-
-    const target = cartItems.find(
-
-
-
-      item => item.cartItemId === cartItemId
-
-
-
-    );
-
-
-
-    if (!target) return;
-
-
-
-    try {
-
-
-
-      const newQuantity = target.quantity + 1;
-
-
-
-      await api.put(
-
-
-
-        `/cart/items/${cartItemId}`,
-
-
-
-        {
-
-
-
-          quantity: newQuantity,
-
-
-
-        }
-
-
-
-      );
-      invalidateGetCache('cart:');
-
-
-
-      const unitPrice =
-
-
-
-        target.itemTotalPrice /
-
-
-
-        target.quantity;
-
-
-
-      setCartItems(prev =>
-
-
-
-        prev.map(item =>
-
-
-
-          item.cartItemId === cartItemId
-
-
-
-            ? {
+              ? {
 
 
 
@@ -1286,11 +1305,63 @@ useEffect(() => {
 
 
 
-            : item
+              : item
 
 
 
-        )
+          )
+
+
+
+        );
+
+
+
+      } catch (error) {
+
+
+
+        console.error(
+
+
+
+          'Failed to increase cart item:',
+
+
+
+          error
+
+
+
+        );
+
+
+
+      }
+
+
+
+    };
+
+
+
+    const handleDecrement = async (
+
+
+
+      cartItemId: string
+
+
+
+    ) => {
+
+
+
+      const target = cartItems.find(
+
+
+
+        item => item.cartItemId === cartItemId
 
 
 
@@ -1298,67 +1369,193 @@ useEffect(() => {
 
 
 
-    } catch (error) {
+      if (!target) return;
 
 
 
-      console.error(
+      try {
 
 
 
-        'Failed to increase cart item:',
+        if (target.quantity <= 1) {
 
 
 
-        error
+          await api.delete(
 
 
 
-      );
+            `/cart/items/${cartItemId}`
 
 
 
-    }
+          );
+          invalidateGetCache('cart:');
 
 
 
-  };
+          setCartItems(prev =>
 
 
 
-  const handleDecrement = async (
+            prev.filter(
 
 
 
-    cartItemId: string
+              item =>
 
 
 
-  ) => {
+                item.cartItemId !== cartItemId
 
 
 
-    const target = cartItems.find(
+            )
 
 
 
-      item => item.cartItemId === cartItemId
+          );
 
 
 
-    );
+          return;
 
 
 
-    if (!target) return;
+        }
 
 
 
-    try {
+        const newQuantity = target.quantity - 1;
 
 
 
-      if (target.quantity <= 1) {
+        await api.put(
+
+
+
+          `/cart/items/${cartItemId}`,
+
+
+
+          {
+
+
+
+            quantity: newQuantity,
+
+
+
+          }
+
+
+
+        );
+        invalidateGetCache('cart:');
+
+
+
+        const unitPrice =
+
+
+
+          target.itemTotalPrice /
+
+
+
+          target.quantity;
+
+
+
+        setCartItems(prev =>
+
+
+
+          prev.map(item =>
+
+
+
+            item.cartItemId === cartItemId
+
+
+
+              ? {
+
+
+
+                ...item,
+
+
+
+                quantity: newQuantity,
+
+
+
+                itemTotalPrice:
+
+
+
+                  newQuantity * unitPrice,
+
+
+
+              }
+
+
+
+              : item
+
+
+
+          )
+
+
+
+        );
+
+
+
+      } catch (error) {
+
+
+
+        console.error(
+
+
+
+          'Failed to decrease cart item:',
+
+
+
+          error
+
+
+
+        );
+
+
+
+      }
+
+
+
+    };
+
+
+
+    const handleRemoveItem = async (
+
+
+
+      cartItemId: string
+
+
+
+    ) => {
+
+
+
+      try {
 
 
 
@@ -1399,7 +1596,23 @@ useEffect(() => {
 
 
 
-        return;
+      } catch (error) {
+
+
+
+        console.error(
+
+
+
+          'Failed to remove cart item:',
+
+
+
+          error
+
+
+
+        );
 
 
 
@@ -1407,253 +1620,59 @@ useEffect(() => {
 
 
 
-      const newQuantity = target.quantity - 1;
+    };
 
 
 
-      await api.put(
+    const handleProceedToCheckout = (
 
 
 
-        `/cart/items/${cartItemId}`,
+      tip: number,
 
 
 
-        {
+      cutlery: boolean
 
 
 
-          quantity: newQuantity,
+    ) => {
 
 
 
-        }
+      setTipAmount(tip);
 
 
 
-      );
-      invalidateGetCache('cart:');
+      setIncludeCutlery(cutlery);
 
 
 
-      const unitPrice =
+      setIsCartOpen(false);
 
 
 
-        target.itemTotalPrice /
+      setIsCheckoutOpen(true);
 
 
 
-        target.quantity;
+    };
 
 
 
-      setCartItems(prev =>
+    const handlePlaceOrder = async (orderData: {
 
 
 
-        prev.map(item =>
+      customerName: string;
 
 
 
-          item.cartItemId === cartItemId
+      customerPhone: string;
 
 
 
-            ? {
-
-
-
-                ...item,
-
-
-
-                quantity: newQuantity,
-
-
-
-                itemTotalPrice:
-
-
-
-                  newQuantity * unitPrice,
-
-
-
-              }
-
-
-
-            : item
-
-
-
-        )
-
-
-
-      );
-
-
-
-    } catch (error) {
-
-
-
-      console.error(
-
-
-
-        'Failed to decrease cart item:',
-
-
-
-        error
-
-
-
-      );
-
-
-
-    }
-
-
-
-  };
-
-
-
-  const handleRemoveItem = async (
-
-
-
-    cartItemId: string
-
-
-
-  ) => {
-
-
-
-    try {
-
-
-
-      await api.delete(
-
-
-
-        `/cart/items/${cartItemId}`
-
-
-
-      );
-      invalidateGetCache('cart:');
-
-
-
-      setCartItems(prev =>
-
-
-
-        prev.filter(
-
-
-
-          item =>
-
-
-
-            item.cartItemId !== cartItemId
-
-
-
-        )
-
-
-
-      );
-
-
-
-    } catch (error) {
-
-
-
-      console.error(
-
-
-
-        'Failed to remove cart item:',
-
-
-
-        error
-
-
-
-      );
-
-
-
-    }
-
-
-
-  };
-
-
-
-  const handleProceedToCheckout = (
-
-
-
-    tip: number,
-
-
-
-    cutlery: boolean
-
-
-
-  ) => {
-
-
-
-    setTipAmount(tip);
-
-
-
-    setIncludeCutlery(cutlery);
-
-
-
-    setIsCartOpen(false);
-
-
-
-    setIsCheckoutOpen(true);
-
-
-
-  };
-
-
-
-  const handlePlaceOrder = async (orderData: {
-
-
-
-    customerName: string;
-
-
-
-    customerPhone: string;
-
-
-
-    paymentMethod:
+      paymentMethod:
 
 
 
@@ -1669,291 +1688,15 @@ useEffect(() => {
 
 
 
-    specialNotes: string;
+      specialNotes: string;
 
 
 
-    discount: number;
+      discount: number;
 
 
 
-  }) => {
-
-
-
-    try {
-
-
-
-      if (!restaurantInfo) {
-
-
-
-        console.error(
-
-
-
-          'Restaurant information is not available'
-
-
-
-        );
-
-
-
-        return;
-
-
-
-      }
-
-
-
-      if (!displayTableInfo.tableNumber.trim()) {
-
-
-
-        console.error(
-
-
-
-          'Table number is not available.'
-
-
-
-        );
-
-
-
-        return;
-
-
-
-      }
-
-
-
-      const paymentMethodMap = {
-
-
-
-        counter: 'CASH',
-
-
-
-        upi: 'UPI',
-
-
-
-        card: 'CARD',
-
-
-
-      } as const;
-
-
-
-      const response = await api.post('/orders', {
-
-
-
-        restaurantId: restaurantInfo.id,
-
-
-
-        tableNumber:
-
-
-
-          displayTableInfo.tableNumber.trim(),
-
-
-
-        customerName:
-
-
-
-          orderData.customerName,
-
-
-
-        customerPhone:
-
-
-
-          orderData.customerPhone,
-
-
-
-        paymentMethod:
-
-
-
-          paymentMethodMap[
-
-
-
-            orderData.paymentMethod
-
-
-
-          ],
-
-
-
-        specialInstructions:
-
-
-
-          orderData.specialNotes,
-
-
-
-      });
-
-
-
-      const backendOrder =
-
-
-
-        response.data.order;
-
-
-
-      const newOrder: Order = {
-
-
-
-        orderId: backendOrder.id,
-
-
-
-        tokenNumber:
-
-
-
-          backendOrder.tokenNumber,
-
-
-
-        tableNumber:
-
-
-
-          backendOrder.tableNumber,
-
-
-
-        customerName:
-
-
-
-          backendOrder.customerName,
-
-
-
-        customerPhone:
-
-
-
-          backendOrder.customerPhone,
-
-
-
-        items: [...cartItems],
-
-
-
-        subtotal:
-
-
-
-          Number(backendOrder.subtotal),
-
-
-
-        tax:
-
-
-
-          Number(backendOrder.tax),
-
-
-
-        serviceCharge: 0,
-
-
-
-        tip: tipAmount,
-
-
-
-        discount:
-
-
-
-          Number(backendOrder.discount) ||
-
-
-
-          orderData.discount,
-
-
-
-        total:
-
-
-
-          Number(backendOrder.total),
-
-
-
-        status: 'received',
-
-
-
-       createdAt: backendOrder.createdAt,
-
-
-
-        estimatedDeliveryTime:
-
-
-
-          backendOrder.estimatedPrepTime
-
-
-
-            ? `${backendOrder.estimatedPrepTime} Mins`
-
-
-
-            : '10-15 Mins',
-
-
-
-        paymentMethod:
-
-
-
-          orderData.paymentMethod,
-
-
-
-        specialNotes:
-
-
-
-          orderData.specialNotes,
-
-
-
-      };
-
-
-
-      setActiveOrder(newOrder);
+    }) => {
 
 
 
@@ -1961,63 +1704,339 @@ useEffect(() => {
 
 
 
-        sessionStorage.setItem(
+        if (!restaurantInfo) {
 
 
 
-          `float247_order\_${newOrder.orderId}`,
+          console.error(
 
 
 
-          JSON.stringify(newOrder)
+            'Restaurant information is not available'
 
 
 
-        );
+          );
 
 
 
-      } catch (error) {
+          return;
 
 
 
-        console.error('Failed to persist order route state:', error);
+        }
 
 
 
-      }
+        if (!displayTableInfo.tableNumber.trim()) {
 
 
 
-      setCartItems([]);
+          console.error(
 
 
 
-      setIsCheckoutOpen(false);
+            'Table number is not available.'
 
 
 
-      setActiveView('success');
+          );
 
 
 
-      navigate(`/order/${newOrder.orderId}`);
+          return;
 
 
 
-    } catch (error: any) {
+        }
 
 
 
-      console.error(
+        const paymentMethodMap = {
 
 
 
-        'Failed to place order:',
+          counter: 'CASH',
 
 
 
-        error?.response?.data ||
+          upi: 'UPI',
+
+
+
+          card: 'CARD',
+
+
+
+        } as const;
+
+
+
+        const response = await api.post('/orders', {
+
+
+
+          restaurantId: restaurantInfo.id,
+
+
+
+          tableNumber:
+
+
+
+            displayTableInfo.tableNumber.trim(),
+
+
+
+          customerName:
+
+
+
+            orderData.customerName,
+
+
+
+          customerPhone:
+
+
+
+            orderData.customerPhone,
+
+
+
+          paymentMethod:
+
+
+
+            paymentMethodMap[
+
+
+
+            orderData.paymentMethod
+
+
+
+            ],
+
+
+
+          specialInstructions:
+
+
+
+            orderData.specialNotes,
+
+
+
+        });
+
+
+
+        const backendOrder =
+
+
+
+          response.data.order;
+
+
+
+        const newOrder: Order = {
+
+
+
+          orderId: backendOrder.id,
+
+
+
+          tokenNumber:
+
+
+
+            backendOrder.tokenNumber,
+
+
+
+          tableNumber:
+
+
+
+            backendOrder.tableNumber,
+
+
+
+          customerName:
+
+
+
+            backendOrder.customerName,
+
+
+
+          customerPhone:
+
+
+
+            backendOrder.customerPhone,
+
+
+
+          items: [...cartItems],
+
+
+
+          subtotal:
+
+
+
+            Number(backendOrder.subtotal),
+
+
+
+          tax:
+
+
+
+            Number(backendOrder.tax),
+
+
+
+          serviceCharge: 0,
+
+
+
+          tip: tipAmount,
+
+
+
+          discount:
+
+
+
+            Number(backendOrder.discount) ||
+
+
+
+            orderData.discount,
+
+
+
+          total:
+
+
+
+            Number(backendOrder.total),
+
+
+
+          status: 'received',
+
+
+
+          createdAt: backendOrder.createdAt,
+
+
+
+          estimatedDeliveryTime:
+
+
+
+            backendOrder.estimatedPrepTime
+
+
+
+              ? `${backendOrder.estimatedPrepTime} Mins`
+
+
+
+              : '10-15 Mins',
+
+
+
+          paymentMethod:
+
+
+
+            orderData.paymentMethod,
+
+
+
+          specialNotes:
+
+
+
+            orderData.specialNotes,
+
+
+
+        };
+
+
+
+        setActiveOrder(newOrder);
+
+
+
+        try {
+
+
+
+          sessionStorage.setItem(
+
+
+
+            `float247_order\_${newOrder.orderId}`,
+
+
+
+            JSON.stringify(newOrder)
+
+
+
+          );
+
+
+
+        } catch (error) {
+
+
+
+          console.error('Failed to persist order route state:', error);
+
+
+
+        }
+
+
+
+        setCartItems([]);
+
+
+
+        setIsCheckoutOpen(false);
+
+
+
+        setActiveView('success');
+
+
+
+        navigate(`/order/${newOrder.orderId}`);
+
+
+
+      } catch (error: any) {
+
+
+
+        console.error(
+
+
+
+          'Failed to place order:',
+
+
+
+          error?.response?.data ||
 
 
 
@@ -2029,79 +2048,11 @@ useEffect(() => {
 
 
 
-      );
+        );
 
 
 
-    }
-
-
-
-  };
-
-
-
-  const handleGuestServiceCall = (
-
-
-
-    requestType: string
-
-
-
-  ) => {
-
-
-
-    const newReq: ServiceRequest = {
-
-
-
-      id: `req-${Date.now()}`,
-
-
-
-      tableNumber:
-
-
-
-        displayTableInfo.tableNumber,
-
-
-
-      requestType,
-
-
-
-      time: new Date().toLocaleTimeString(
-
-
-
-        [],
-
-
-
-        {
-
-
-
-          hour: '2-digit',
-
-
-
-          minute: '2-digit',
-
-
-
-        }
-
-
-
-      ),
-
-
-
-      resolved: false,
+      }
 
 
 
@@ -2109,71 +2060,55 @@ useEffect(() => {
 
 
 
-    setServiceRequests(prev => [
+    const handleGuestServiceCall = (
 
 
 
-      newReq,
+      requestType: string
 
 
 
-      ...prev,
+    ) => {
 
 
 
-    ]);
+      const newReq: ServiceRequest = {
 
 
 
-  };
+        id: `req-${Date.now()}`,
 
 
 
-  return (
+        tableNumber:
 
 
 
-    <div className="app-container">
+          displayTableInfo.tableNumber,
 
 
 
-      <RestaurantHeader
+        requestType,
 
 
 
-        tableInfo={displayTableInfo}
+        time: new Date().toLocaleTimeString(
 
 
 
-        activeOrder={activeOrder}
+          [],
 
 
 
-        activeView={activeView}
+          {
 
 
 
-        onOpenWaiterModal={() =>
+            hour: '2-digit',
 
 
 
-          setIsWaiterModalOpen(true)
-
-
-
-        }
-
-
-
-        onOpenOrderTracker={() => {
-
-
-
-          if (activeOrder?.orderId) {
-
-
-
-            navigate(`/track-order/${activeOrder.orderId}`);
+            minute: '2-digit',
 
 
 
@@ -2181,747 +2116,211 @@ useEffect(() => {
 
 
 
-        }}
+        ),
 
 
 
-        onOpenCart={() => {
+        resolved: false,
 
 
 
-          setIsCartOpen(true);
+      };
 
 
 
-          navigate(
+      setServiceRequests(prev => [
 
 
 
-            tableId
+        newReq,
 
 
 
-              ? `/cart?table=${encodeURIComponent(tableId)}`
+        ...prev,
 
 
 
-              : '/cart'
+      ]);
 
 
 
-          );
+    };
 
 
 
-        }}
+    return (
 
 
 
-        onSwitchToAdminView={
+      <div className="app-container">
 
-
-
-          onSwitchToAdminView
-
-
-
-        }
-
-
-
-        cartItemCount={cartItems.reduce(
-
-
-
-          (acc, item) =>
-
-
-
-            acc + item.quantity,
-
-
-
-          0
-
-
-
-        )}
-
-
-
-        searchQuery={searchQuery}
-
-
-
-        setSearchQuery={setSearchQuery}
-
-
-
-        theme={theme}
-
-
-
-        toggleTheme={toggleTheme}
-
-
-
-      />
-
-
-
-      {activeView === 'menu' && (
-
-
-
-        <main>
-
-
-
-          <CategoryPills
-
-
-
-            selectedCategory={
-
-
-
-              selectedCategory
-
-
-
+        {cartToast.visible && (
+          <>
+            <style>{`
+            @keyframes float247CartToastIn {
+              0% {
+                opacity: 0;
+                transform: translate(-50%, -18px) scale(0.94);
+              }
+              70% {
+                opacity: 1;
+                transform: translate(-50%, 2px) scale(1.01);
+              }
+              100% {
+                opacity: 1;
+                transform: translate(-50%, 0) scale(1);
+              }
             }
 
-
-
-            onSelectCategory={
-
-
-
-              setSelectedCategory
-
-
-
-            }
-
-
-
-            dietaryFilter={
-
-
-
-              dietaryFilter
-
-
-
-            }
-
-
-
-            setDietaryFilter={
-
-
-
-              setDietaryFilter
-
-
-
-            }
-
-
-
-          />
-
-
-
-          <section
-
-
-
-            className="section"
-
-
-
-            style={{
-
-
-
-              paddingTop: '0.75rem',
-
-
-
-            }}
-
-
-
-          >
-
-
-
-            <div className="container">
-
-
-
-              <div
-
-
-
-                style={{
-
-
-
-                  display: 'flex',
-
-
-
-                  justifyContent:
-
-
-
-                    'space-between',
-
-
-
-                  alignItems: 'center',
-
-
-
-                  marginBottom: '0.75rem',
-
-
-
-                }}
-
-
-
-              >
-
-
-
-                <h2
-
-
-
-                  style={{
-
-
-
-                    fontSize: '1.25rem',
-
-
-
-                    fontWeight: 900,
-
-
-
-                  }}
-
-
-
-                >
-
-
-
-                  {searchQuery
-
-
-
-                    ? `Search Results for "${searchQuery}"`
-
-
-
-                    : selectedCategory ===
-
-
-
-                        'all'
-
-
-
-                      ? 'Flame-Grilled Menu'
-
-
-
-                      : categoryNames[
-
-
-
-                          selectedCategory
-
-
-
-                        ] || 'Menu'}
-
-
-
-                </h2>
-
-
-
-                <span
-
-
-
-                  style={{
-
-
-
-                    fontSize: '0.85rem',
-
-
-
-                    color:
-
-
-
-                      'var(--text-muted)',
-
-
-
-                    fontWeight: 700,
-
-
-
-                  }}
-
-
-
-                >
-
-
-
-                  {filteredItems.length}{' '}
-
-
-
-                  {filteredItems.length === 1
-
-
-
-                    ? 'dish'
-
-
-
-                    : 'dishes'}
-
-
-
-                </span>
-
-
-
-              </div>
-
-
-
-              {filteredItems.length === 0 ? (
-
-
-
-                <div
-
-
-
-                  style={{
-
-
-
-                    textAlign: 'center',
-
-
-
-                    padding:
-
-
-
-                      '3.5rem 1rem',
-
-
-
-                    color:
-
-
-
-                      'var(--text-muted)',
-
-
-
-                  }}
-
-
-
-                >
-
-
-
-                  <p
-
-
-
-                    style={{
-
-
-
-                      fontSize: '1.1rem',
-
-
-
-                      marginBottom:
-
-
-
-                        '0.5rem',
-
-
-
-                    }}
-
-
-
-                  >
-
-
-
-                    No dishes match your
-
-
-
-                    filter criteria.
-
-
-
-                  </p>
-
-
-
-                  <button
-
-
-
-                    className="btn btn-secondary btn-sm"
-
-
-
-                    onClick={() => {
-
-
-
-                      setSelectedCategory(
-
-
-
-                        'all'
-
-
-
-                      );
-
-
-
-                      setDietaryFilter(
-
-
-
-                        'all'
-
-
-
-                      );
-
-
-
-                      setSearchQuery('');
-
-
-
-                    }}
-
-
-
-                  >
-
-
-
-                    Reset All Filters
-
-
-
-                  </button>
-
-
-
-                </div>
-
-
-
-              ) : (
-
-
-
-                <div className="food-grid">
-
-
-
-                  {filteredItems.map(
-
-
-
-                    item => {
-
-
-
-                      const cartItem =
-
-
-
-                        cartItems.find(
-
-
-
-                          cart =>
-
-
-
-                            cart.item.id ===
-
-
-
-                            item.id
-
-
-
-                        );
-
-
-
-                      return (
-
-
-
-                        <FoodCard
-
-
-
-                          key={item.id}
-
-
-
-                          item={item}
-
-
-
-                          cartItem={cartItem}
-
-
-
-                          onOpenDetails={
-
-
-
-                            setSelectedItemForDetail
-
-
-
-                          }
-
-
-
-                          onQuickAdd={
-
-
-
-                            handleQuickAdd
-
-
-
-                          }
-
-
-
-                          onIncrement={
-
-
-
-                            handleIncrement
-
-
-
-                          }
-
-
-
-                          onDecrement={
-
-
-
-                            handleDecrement
-
-
-
-                          }
-
-
-
-                        />
-
-
-
-                      );
-
-
-
-                    }
-
-
-
-                  )}
-
-
-
-                </div>
-
-
-
-              )}
-
-
-
-            </div>
-
-
-
-          </section>
-
-
-
-        </main>
-
-
-
-      )}
-
-
-
-      {activeView === 'success' &&
-
-
-
-        activeOrder && (
-
-
-
-          <OrderSuccess
-
-
-
-            order={activeOrder}
-
-
-
-            onTrackOrder={() => {
-
-
-
-              if (activeOrder?.orderId) {
-
-
-
-                navigate(`/track-order/${activeOrder.orderId}`);
-
-
-
+            @media (max-width: 520px) {
+              .float247-cart-toast {
+                width: calc(100vw - 28px) !important;
+                min-width: 0 !important;
+                top: calc(var(--header-height, 70px) + 12px) !important;
               }
 
-
-
-            }}
-
-
-
-            onBackToMenu={() =>
-
-
-
-              navigate(
-
-
-
-                tableId
-
-
-
-                  ? `/?table=${encodeURIComponent(tableId)}`
-
-
-
-                  : '/'
-
-
-
-              )
-
-
-
+              .float247-cart-toast-name {
+                max-width: calc(100vw - 120px) !important;
+              }
             }
+          `}</style>
 
+            <div
+              className="float247-cart-toast"
+              role="status"
+              aria-live="polite"
+              style={{
+                position: 'fixed',
+                top: 'calc(var(--header-height, 80px) + 16px)',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 999999,
+                width: '360px',
+                minWidth: '270px',
+                maxWidth: 'calc(100vw - 28px)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '13px 15px',
+                background: '#FFFFFF',
+                border: '1px solid #E7E7EB',
+                borderLeft: '4px solid #FF2457',
+                borderRadius: '15px',
+                boxShadow: '0 14px 40px rgba(31,31,31,0.14), 0 3px 10px rgba(31,31,31,0.06)',
+                pointerEvents: 'none',
+                animation: 'float247CartToastIn 0.28s ease-out',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  minWidth: '38px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: '#FFE7ED',
+                  color: '#FF2457',
+                  borderRadius: '50%',
+                  fontSize: '18px',
+                  fontWeight: 900,
+                  boxShadow: 'inset 0 0 0 1px rgba(255,36,87,0.08)',
+                }}
+              >
+                ✓
+              </div>
 
+              <div
+                style={{
+                  minWidth: 0,
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '3px',
+                }}
+              >
+                <span
+                  style={{
+                    color: '#1F1F1F',
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    lineHeight: 1.2,
+                  }}
+                >
+                  Added to Cart
+                </span>
 
-          />
+                <span
+                  className="float247-cart-toast-name"
+                  style={{
+                    display: 'block',
+                    color: '#8A8A8A',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    lineHeight: 1.35,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    maxWidth: '250px',
+                  }}
+                >
+                  {cartToast.itemName}
+                </span>
+              </div>
 
-
-
+              <div
+                style={{
+                  width: '7px',
+                  height: '7px',
+                  minWidth: '7px',
+                  borderRadius: '50%',
+                  background: '#FF2457',
+                }}
+              />
+            </div>
+          </>
         )}
 
 
 
-      {activeView === 'tracker' &&
+        <RestaurantHeader
 
 
 
-        activeOrder && (
+          tableInfo={displayTableInfo}
 
 
 
-          <OrderTracker
+          activeOrder={activeOrder}
 
 
 
-            order={activeOrder}
+          activeView={activeView}
 
 
 
-            onBackToMenu={() =>
+          onOpenWaiterModal={() =>
 
 
 
-              navigate(
+            setIsWaiterModalOpen(true)
 
 
 
-                tableId
+          }
 
 
 
-                  ? `/?table=${encodeURIComponent(tableId)}`
+          onOpenOrderTracker={() => {
 
 
 
-                  : '/'
+            if (activeOrder?.orderId) {
 
 
 
-              )
-
-
-
-            }
-
-
-
-            onOpenWaiterModal={() =>
-
-
-
-              setIsWaiterModalOpen(true)
+              navigate(`/track-order/${activeOrder.orderId}`);
 
 
 
@@ -2929,23 +2328,7 @@ useEffect(() => {
 
 
 
-          />
-
-
-
-        )}
-
-
-
-      {activeView === 'menu' && (
-
-
-
-        <FloatingCartBar
-
-
-
-          cartItems={cartItems}
+          }}
 
 
 
@@ -2981,267 +2364,1031 @@ useEffect(() => {
 
 
 
+          onSwitchToAdminView={
+
+
+
+            onSwitchToAdminView
+
+
+
+          }
+
+
+
+          cartItemCount={cartItems.reduce(
+
+
+
+            (acc, item) =>
+
+
+
+              acc + item.quantity,
+
+
+
+            0
+
+
+
+          )}
+
+
+
+          searchQuery={searchQuery}
+
+
+
+          setSearchQuery={setSearchQuery}
+
+
+
+          theme={theme}
+
+
+
+          toggleTheme={toggleTheme}
+
+
+
         />
 
 
 
-      )}
+        {activeView === 'menu' && (
 
 
 
-      <ItemDetailModal
+          <main>
 
 
 
-        item={selectedItemForDetail}
+            <CategoryPills
 
 
 
-        onClose={() =>
+              selectedCategory={
 
 
 
-          setSelectedItemForDetail(null)
+                selectedCategory
 
 
 
-        }
+              }
 
 
 
-        onAddToCart={handleAddToCart}
+              onSelectCategory={
 
 
 
-      />
+                setSelectedCategory
 
 
 
-      <CartDrawer
+              }
 
 
 
-        isOpen={isCartOpen}
+              dietaryFilter={
 
 
 
-        onClose={() => {
+                dietaryFilter
 
 
 
-          setIsCartOpen(false);
+              }
 
 
 
-          navigate(
+              setDietaryFilter={
 
 
 
-            tableId
+                setDietaryFilter
 
 
 
-              ? `/?table=${encodeURIComponent(tableId)}`
+              }
 
 
 
-              : '/'
+            />
 
 
 
-          );
+            <section
 
 
 
-        }}
+              className="section"
 
 
 
-        cartItems={cartItems}
+              style={{
 
 
 
-        onIncrement={handleIncrement}
+                paddingTop: '0.75rem',
 
 
 
-        onDecrement={handleDecrement}
+              }}
 
 
 
-        onRemoveItem={handleRemoveItem}
+            >
 
 
 
-        onProceedToCheckout={(tip, cutlery) => {
+              <div className="container">
 
 
 
-          handleProceedToCheckout(tip, cutlery);
+                <div
 
 
 
-          navigate(
+                  style={{
 
 
 
-            tableId
+                    display: 'flex',
 
 
 
-              ? `/checkout?table=${encodeURIComponent(tableId)}`
+                    justifyContent:
 
 
 
-              : '/checkout'
+                      'space-between',
 
 
 
-          );
+                    alignItems: 'center',
 
 
 
-        }}
+                    marginBottom: '0.75rem',
 
 
 
-        tableNumber={
+                  }}
 
 
 
-          displayTableInfo.tableNumber
+                >
 
 
 
-        }
+                  <h2
 
 
 
-      />
+                    style={{
 
 
 
-      <CheckoutModal
+                      fontSize: '1.25rem',
 
 
 
-        isOpen={isCheckoutOpen}
+                      fontWeight: 900,
 
 
 
-        onClose={() => {
+                    }}
 
 
 
-          setIsCheckoutOpen(false);
+                  >
 
 
 
-          navigate(
+                    {searchQuery
 
 
 
-            tableId
+                      ? `Search Results for "${searchQuery}"`
 
 
 
-              ? `/cart?table=${encodeURIComponent(tableId)}`
+                      : selectedCategory ===
 
 
 
-              : '/cart'
+                        'all'
 
 
 
-          );
+                        ? 'Flame-Grilled Menu'
 
 
 
-        }}
+                        : categoryNames[
 
 
 
-        cartItems={cartItems}
+                        selectedCategory
 
 
 
-        tipAmount={tipAmount}
+                        ] || 'Menu'}
 
 
 
-        includeCutlery={
+                  </h2>
 
 
 
-          includeCutlery
+                  <span
 
 
 
-        }
+                    style={{
 
 
 
-        tableInfo={displayTableInfo}
+                      fontSize: '0.85rem',
 
 
 
-        onPlaceOrder={handlePlaceOrder}
+                      color:
 
 
 
-      />
+                        'var(--text-muted)',
 
 
 
-      <WaiterCallModal
+                      fontWeight: 700,
 
 
 
-        isOpen={isWaiterModalOpen}
+                    }}
 
 
 
-        onClose={() =>
+                  >
 
 
 
-          setIsWaiterModalOpen(false)
+                    {filteredItems.length}{' '}
 
 
 
-        }
+                    {filteredItems.length === 1
 
 
 
-        tableInfo={displayTableInfo}
+                      ? 'dish'
 
 
 
-        onServiceCall={
+                      : 'dishes'}
 
 
 
-          handleGuestServiceCall
+                  </span>
 
 
 
-        }
+                </div>
 
 
 
-      />
+                {filteredItems.length === 0 ? (
 
 
 
-    </div>
+                  <div
 
 
 
-  );
+                    style={{
 
 
 
-};
+                      textAlign: 'center',
+
+
+
+                      padding:
+
+
+
+                        '3.5rem 1rem',
+
+
+
+                      color:
+
+
+
+                        'var(--text-muted)',
+
+
+
+                    }}
+
+
+
+                  >
+
+
+
+                    <p
+
+
+
+                      style={{
+
+
+
+                        fontSize: '1.1rem',
+
+
+
+                        marginBottom:
+
+
+
+                          '0.5rem',
+
+
+
+                      }}
+
+
+
+                    >
+
+
+
+                      No dishes match your
+
+
+
+                      filter criteria.
+
+
+
+                    </p>
+
+
+
+                    <button
+
+
+
+                      className="btn btn-secondary btn-sm"
+
+
+
+                      onClick={() => {
+
+
+
+                        setSelectedCategory(
+
+
+
+                          'all'
+
+
+
+                        );
+
+
+
+                        setDietaryFilter(
+
+
+
+                          'all'
+
+
+
+                        );
+
+
+
+                        setSearchQuery('');
+
+
+
+                      }}
+
+
+
+                    >
+
+
+
+                      Reset All Filters
+
+
+
+                    </button>
+
+
+
+                  </div>
+
+
+
+                ) : (
+
+
+
+                  <div className="food-grid">
+
+
+
+                    {filteredItems.map(
+
+
+
+                      item => {
+
+
+
+                        const cartItem =
+
+
+
+                          cartItems.find(
+
+
+
+                            cart =>
+
+
+
+                              cart.item.id ===
+
+
+
+                              item.id
+
+
+
+                          );
+
+
+
+                        return (
+
+
+
+                          <FoodCard
+
+
+
+                            key={item.id}
+
+
+
+                            item={item}
+
+
+
+                            cartItem={cartItem}
+
+
+
+                            onOpenDetails={
+
+
+
+                              setSelectedItemForDetail
+
+
+
+                            }
+
+
+
+                            onQuickAdd={
+
+
+
+                              handleQuickAdd
+
+
+
+                            }
+
+
+
+                            onIncrement={
+
+
+
+                              handleIncrement
+
+
+
+                            }
+
+
+
+                            onDecrement={
+
+
+
+                              handleDecrement
+
+
+
+                            }
+
+
+
+                          />
+
+
+
+                        );
+
+
+
+                      }
+
+
+
+                    )}
+
+
+
+                  </div>
+
+
+
+                )}
+
+
+
+              </div>
+
+
+
+            </section>
+
+
+
+          </main>
+
+
+
+        )}
+
+
+
+        {activeView === 'success' &&
+
+
+
+          activeOrder && (
+
+
+
+            <OrderSuccess
+
+
+
+              order={activeOrder}
+
+
+
+              onTrackOrder={() => {
+
+
+
+                if (activeOrder?.orderId) {
+
+
+
+                  navigate(`/track-order/${activeOrder.orderId}`);
+
+
+
+                }
+
+
+
+              }}
+
+
+
+              onBackToMenu={() =>
+
+
+
+                navigate(
+
+
+
+                  tableId
+
+
+
+                    ? `/?table=${encodeURIComponent(tableId)}`
+
+
+
+                    : '/'
+
+
+
+                )
+
+
+
+              }
+
+
+
+            />
+
+
+
+          )}
+
+
+
+        {activeView === 'tracker' &&
+
+
+
+          activeOrder && (
+
+
+
+            <OrderTracker
+
+
+
+              order={activeOrder}
+
+
+
+              onBackToMenu={() =>
+
+
+
+                navigate(
+
+
+
+                  tableId
+
+
+
+                    ? `/?table=${encodeURIComponent(tableId)}`
+
+
+
+                    : '/'
+
+
+
+                )
+
+
+
+              }
+
+
+
+              onOpenWaiterModal={() =>
+
+
+
+                setIsWaiterModalOpen(true)
+
+
+
+              }
+
+
+
+            />
+
+
+
+          )}
+
+
+
+        {activeView === 'menu' && (
+
+
+
+          <FloatingCartBar
+
+
+
+            cartItems={cartItems}
+
+
+
+            onOpenCart={() => {
+
+
+
+              setIsCartOpen(true);
+
+
+
+              navigate(
+
+
+
+                tableId
+
+
+
+                  ? `/cart?table=${encodeURIComponent(tableId)}`
+
+
+
+                  : '/cart'
+
+
+
+              );
+
+
+
+            }}
+
+
+
+          />
+
+
+
+        )}
+
+
+
+        <ItemDetailModal
+
+
+
+          item={selectedItemForDetail}
+
+
+
+          onClose={() =>
+
+
+
+            setSelectedItemForDetail(null)
+
+
+
+          }
+
+
+
+          onAddToCart={handleAddToCart}
+
+
+
+        />
+
+
+
+        <CartDrawer
+
+
+
+          isOpen={isCartOpen}
+
+
+
+          onClose={() => {
+
+
+
+            setIsCartOpen(false);
+
+
+
+            navigate(
+
+
+
+              tableId
+
+
+
+                ? `/?table=${encodeURIComponent(tableId)}`
+
+
+
+                : '/'
+
+
+
+            );
+
+
+
+          }}
+
+
+
+          cartItems={cartItems}
+
+
+
+          onIncrement={handleIncrement}
+
+
+
+          onDecrement={handleDecrement}
+
+
+
+          onRemoveItem={handleRemoveItem}
+
+
+
+          onProceedToCheckout={(tip, cutlery) => {
+
+
+
+            handleProceedToCheckout(tip, cutlery);
+
+
+
+            navigate(
+
+
+
+              tableId
+
+
+
+                ? `/checkout?table=${encodeURIComponent(tableId)}`
+
+
+
+                : '/checkout'
+
+
+
+            );
+
+
+
+          }}
+
+
+
+          tableNumber={
+
+
+
+            displayTableInfo.tableNumber
+
+
+
+          }
+
+
+
+        />
+
+
+
+        <CheckoutModal
+
+
+
+          isOpen={isCheckoutOpen}
+
+
+
+          onClose={() => {
+
+
+
+            setIsCheckoutOpen(false);
+
+
+
+            navigate(
+
+
+
+              tableId
+
+
+
+                ? `/cart?table=${encodeURIComponent(tableId)}`
+
+
+
+                : '/cart'
+
+
+
+            );
+
+
+
+          }}
+
+
+
+          cartItems={cartItems}
+
+
+
+          tipAmount={tipAmount}
+
+
+
+          includeCutlery={
+
+
+
+            includeCutlery
+
+
+
+          }
+
+
+
+          tableInfo={displayTableInfo}
+
+
+
+          onPlaceOrder={handlePlaceOrder}
+
+
+
+        />
+
+
+
+        <WaiterCallModal
+
+
+
+          isOpen={isWaiterModalOpen}
+
+
+
+          onClose={() =>
+
+
+
+            setIsWaiterModalOpen(false)
+
+
+
+          }
+
+
+
+          tableInfo={displayTableInfo}
+
+
+
+          onServiceCall={
+
+
+
+            handleGuestServiceCall
+
+
+
+          }
+
+
+
+        />
+
+
+
+      </div>
+
+
+
+    );
+
+
+
+  };
 
 
 
@@ -3418,26 +3565,17 @@ export const App: React.FC = () => {
 
 
   const [isAdminLoggedIn, setIsAdminLoggedIn] =
+    useState(() => isTokenValid(localStorage.getItem('token')));
 
-
-
-    useState(() =>
-
-
-
-      Boolean(
-
-
-
-        localStorage.getItem('token')
-
-
-
-      )
-
-
-
-    );
+  useEffect(() => {
+    if (location.pathname.startsWith('/admin') && location.pathname !== '/admin/login') {
+      const valid = isTokenValid(localStorage.getItem('token'));
+      if (!valid && isAdminLoggedIn) {
+        clearAdminSessionStorage();
+        setIsAdminLoggedIn(false);
+      }
+    }
+  }, [location.pathname, isAdminLoggedIn]);
 
 
 
@@ -3597,63 +3735,55 @@ export const App: React.FC = () => {
 
 
 
-  const isAdminPage =
 
 
 
-  location.pathname.startsWith('/admin/') &&
+
+  const adminPage = location.pathname;
 
 
 
-  location.pathname !== '/admin/login';
+  const isKitchenPage =
 
 
 
-const adminPage = location.pathname;
+    adminPage === '/admin' ||
 
 
 
-const isKitchenPage =
+    adminPage === '/admin/kitchen';
 
 
 
-  adminPage === '/admin' ||
+  const isTablesPage =
 
 
 
-  adminPage === '/admin/kitchen';
+    adminPage === '/admin/tables';
 
 
 
-const isTablesPage =
+  const isMenuPage =
 
 
 
-  adminPage === '/admin/tables';
+    adminPage === '/admin/menu';
 
 
 
-const isMenuPage =
+  const isReportsPage =
 
 
 
-  adminPage === '/admin/menu';
+    adminPage === '/admin/reports';
 
 
 
-const isReportsPage =
+  const isGuestPage =
 
 
 
-  adminPage === '/admin/reports';
-
-
-
-const isGuestPage =
-
-
-
-  !location.pathname.startsWith('/admin');
+    !location.pathname.startsWith('/admin');
 
 
 
@@ -3797,20 +3927,24 @@ const isGuestPage =
           return;
         }
 
-        for (const restaurant of restaurants) {
-          const tablesResponse = await cachedGet(
-            `tables:${restaurant.id}`,
-            () =>
-              api
-                .get('/tables', {
-                  params: { restaurantId: restaurant.id },
-                })
-                .then(response => response.data)
-          );
+        const tablesResults = await Promise.all(
+          restaurants.map(restaurant =>
+            cachedGet(
+              `tables:${restaurant.id}`,
+              () =>
+                api
+                  .get('/tables', {
+                    params: { restaurantId: restaurant.id },
+                  })
+                  .then(response => response.data)
+            ).then(tablesResponse => ({
+              restaurant,
+              backendTables: tablesResponse?.tables || []
+            }))
+          )
+        );
 
-          const backendTables =
-            tablesResponse?.tables || [];
-
+        for (const { restaurant, backendTables } of tablesResults) {
           const matchedTable = backendTables.find(
             (table: any) =>
               String(table.id) === String(tableId) ||
@@ -3847,204 +3981,88 @@ const isGuestPage =
 
 
   const loadCart = async () => {
-
-
-
     try {
-
-
-
-      const response =
-
-
-
-        await cachedGet(`cart:${getGuestId()}`, () => api.get('/cart'));
-
-
+      const response = await api.get('/cart');
 
       const backendItems =
-
-
-
         response.data.cart
-
-
-
           ?.items || [];
 
-
-
       const mappedCartItems: CartItem[] =
-
-
-
         backendItems
-
-
-
           .map(
-
-
-
             (cartItem: any) => {
+              if (!cartItem?.food) return null;
 
-
-
-              const menuItem =
-
-
-
+              const menuItem: MenuItem =
                 menuItemsList.find(
-
-
-
                   item =>
-
-
-
                     item.id ===
-
-
-
                     cartItem.food.id
-
-
-
-                );
-
-
-
-              if (!menuItem) {
-
-
-
-                return null;
-
-
-
-              }
-
-
+                ) || {
+                  id: cartItem.food.id,
+                  name: cartItem.food.name,
+                  description: cartItem.food.description || '',
+                  price: Number(cartItem.food.price),
+                  category: cartItem.food.categoryId as any,
+                  image: cartItem.food.image || '',
+                  dietary: cartItem.food.veg === 'VEG' ? 'veg' : 'non-veg',
+                  rating: cartItem.food.rating || 4.5,
+                  ratingCount: cartItem.food.ratingCount || 10,
+                  prepTimeMinutes: cartItem.food.prepTime || 15,
+                  isAvailable: cartItem.food.available !== false,
+                  isBestseller: cartItem.food.popular,
+                  isChefSpecial: cartItem.food.featured,
+                };
 
               return {
-
-
-
                 cartItemId:
-
-
-
                   cartItem.id,
-
-
 
                 item: menuItem,
 
-
-
                 quantity:
-
-
-
                   cartItem.quantity,
 
-
-
                 customization: {
-
-
-
                   selectedVariant:
-
-
-
                     undefined,
-
-
 
                   selectedAddons: [],
 
-
-
                   specialInstructions:
-
-
-
                     undefined,
-
-
 
                 },
 
-
-
-               itemTotalPrice:
-
-  Number(
-
-    cartItem.food.price
-
-  ) *
-
-  cartItem.quantity,
-
-
+                itemTotalPrice:
+                  Number(
+                    cartItem.food.price
+                  ) *
+                  cartItem.quantity,
 
               };
 
-
-
             }
-
-
 
           )
 
-
-
           .filter(Boolean) as CartItem[];
 
-
-
       setCartItems(
-
-
-
         mappedCartItems
-
-
-
       );
-
-
 
     } catch (error) {
 
-
-
       console.error(
-
-
-
         'Failed to load cart:',
-
-
-
         error
-
-
-
       );
-
-
 
     }
 
-
-
   };
-
-
 
   useEffect(() => {
     const shouldLoadCart =
@@ -4053,14 +4071,12 @@ const isGuestPage =
       isGuestCheckoutRoute;
 
     if (!shouldLoadCart) return;
-    if (menuItemsList.length === 0) return;
 
     loadCart();
   }, [
     isGuestMenuRoute,
     isGuestCartRoute,
     isGuestCheckoutRoute,
-    menuItemsList,
     tableId,
   ]);
 
@@ -4103,12 +4119,12 @@ const isGuestPage =
 
 
         const response = await cachedGet(
-        `tables:${restaurantInfo.id}`,
-        () =>
-          api.get('/tables', {
-            params: { restaurantId: restaurantInfo.id },
-          })
-      );
+          `tables:${restaurantInfo.id}`,
+          () =>
+            api.get('/tables', {
+              params: { restaurantId: restaurantInfo.id },
+            })
+        );
 
 
 
@@ -4172,7 +4188,7 @@ const isGuestPage =
 
 
 
-                'AVAILABLE'
+                  'AVAILABLE'
 
 
 
@@ -4184,7 +4200,7 @@ const isGuestPage =
 
 
 
-                      'ORDERING'
+                    'ORDERING'
 
 
 
@@ -4196,7 +4212,7 @@ const isGuestPage =
 
 
 
-                        'PAYMENT_PENDING'
+                      'PAYMENT_PENDING'
 
 
 
@@ -4278,78 +4294,78 @@ const isGuestPage =
 
   useEffect(() => {
 
-  const loadOrders = async () => {
+    const loadOrders = async () => {
 
-   if (
+      if (
 
-  !isAdminLoggedIn ||
+        !isAdminLoggedIn ||
 
-  (!isKitchenPage && !isReportsPage)
+        (!isKitchenPage && !isReportsPage)
 
-) {
+      ) {
 
-  return;
+        return;
 
-}
-
-
-
-    try {
-
-      const response = await cachedGet(
-        'admin-orders',
-        () => api.get('/admin/orders')
-      );
+      }
 
 
 
-      const backendOrders = Array.isArray(response.data?.orders)
+      try {
 
-        ? response.data.orders
-
-        : [];
-
-
-
-      const mappedOrders = backendOrders.map((order: any) => ({
-
-        ...order,
+        const response = await cachedGet(
+          'admin-orders',
+          () => api.get('/admin/orders')
+        );
 
 
 
-        // Frontend Order type
+        const backendOrders = Array.isArray(response.data?.orders)
 
-        orderId: order.id,
+          ? response.data.orders
 
-
-
-        // Backend: RECEIVED/PREPARING/READY/COMPLETED/CANCELLED
-
-        // Frontend: received/preparing/ready/completed/cancelled
-
-        status: String(
-
-          order.status || 'RECEIVED'
-
-        ).toLowerCase(),
+          : [];
 
 
 
-        // Keep backend createdAt
+        const mappedOrders = backendOrders.map((order: any) => ({
 
-        createdAt:
-
-          order.createdAt || new Date().toISOString(),
+          ...order,
 
 
 
-        // IMPORTANT:
+          // Frontend Order type
 
-        // AdminStats needs order.items
+          orderId: order.id,
 
-        items: Array.isArray(order.items)
 
-          ? order.items.map((item: any) => ({
+
+          // Backend: RECEIVED/PREPARING/READY/COMPLETED/CANCELLED
+
+          // Frontend: received/preparing/ready/completed/cancelled
+
+          status: String(
+
+            order.status || 'RECEIVED'
+
+          ).toLowerCase(),
+
+
+
+          // Keep backend createdAt
+
+          createdAt:
+
+            order.createdAt || new Date().toISOString(),
+
+
+
+          // IMPORTANT:
+
+          // AdminStats needs order.items
+
+          items: Array.isArray(order.items)
+
+            ? order.items.map((item: any) => ({
 
               ...item,
 
@@ -4367,41 +4383,41 @@ const isGuestPage =
 
             }))
 
-          : [],
+            : [],
 
-      }));
+        }));
 
 
 
-      setOrders(mappedOrders as Order[]);
+        setOrders(mappedOrders as Order[]);
 
-    } catch (error: any) {
+      } catch (error: any) {
 
-      console.error(
+        console.error(
 
-        'Failed to load admin orders:',
+          'Failed to load admin orders:',
 
-        error?.response?.data ||
+          error?.response?.data ||
 
           error?.message ||
 
           error
 
-      );
+        );
 
 
 
-      setOrders([]);
+        setOrders([]);
 
-    }
+      }
 
-  };
+    };
 
 
 
-  loadOrders();
+    loadOrders();
 
-}, [isAdminLoggedIn, isKitchenPage, isReportsPage]);
+  }, [isAdminLoggedIn, isKitchenPage, isReportsPage]);
 
 
 
@@ -4522,7 +4538,7 @@ const isGuestPage =
 
 
 
-          backendStatus
+        backendStatus
 
 
 
@@ -4530,16 +4546,16 @@ const isGuestPage =
 
 
 
-     setOrders(prev =>
-  prev.map(order =>
-    order.orderId === orderId
-      ? {
-          ...order,
-          status: updatedStatus as OrderStatus,
-        }
-      : order
-  )
-);
+      setOrders(prev =>
+        prev.map(order =>
+          order.orderId === orderId
+            ? {
+              ...order,
+              status: updatedStatus as OrderStatus,
+            }
+            : order
+        )
+      );
 
       if (
 
@@ -4553,14 +4569,14 @@ const isGuestPage =
 
 
 
-       setActiveOrder(prev =>
-  prev
-    ? {
-        ...prev,
-        status: updatedStatus as OrderStatus,
-      }
-    : null
-);
+        setActiveOrder(prev =>
+          prev
+            ? {
+              ...prev,
+              status: updatedStatus as OrderStatus,
+            }
+            : null
+        );
 
 
       }
@@ -4583,11 +4599,11 @@ const isGuestPage =
 
 
 
-          error?.message ||
+        error?.message ||
 
 
 
-          error
+        error
 
 
 
@@ -4791,7 +4807,7 @@ const isGuestPage =
 
 
 
-              "Failed to update food availability"
+            "Failed to update food availability"
 
 
 
@@ -4822,15 +4838,15 @@ const isGuestPage =
 
 
 
-                  ...item,
+                ...item,
 
 
 
-                  isAvailable: food.available,
+                isAvailable: food.available,
 
 
 
-                }
+              }
 
 
 
@@ -4862,11 +4878,11 @@ const isGuestPage =
 
 
 
-            error?.message ||
+          error?.message ||
 
 
 
-            error
+          error
 
 
 
@@ -4892,7 +4908,7 @@ const isGuestPage =
 
 
 
-const handleUpdateMenuPrice = (
+  const handleUpdateMenuPrice = (
 
 
 
@@ -4924,15 +4940,15 @@ const handleUpdateMenuPrice = (
 
 
 
-              ...item,
+            ...item,
 
 
 
-              price: newPrice,
+            price: newPrice,
 
 
 
-            }
+          }
 
 
 
@@ -4956,305 +4972,305 @@ const handleUpdateMenuPrice = (
 
 
 
- const handleAddMenuItem = async (data: {
+  const handleAddMenuItem = async (data: {
 
-  id: string;
+    id: string;
 
-  name: string;
+    name: string;
 
-  description: string;
+    description: string;
 
-  price: number;
+    price: number;
 
-  veg: "VEG" | "NON_VEG";
+    veg: "VEG" | "NON_VEG";
 
-  image: string;
+    image: string;
 
-  prepTime: number;
+    prepTime: number;
 
-  restaurantId: string;
+    restaurantId: string;
 
-  categoryId: string;
+    categoryId: string;
 
-  available: boolean;
+    available: boolean;
 
-  popular: boolean;
+    popular: boolean;
 
-  featured: boolean;
+    featured: boolean;
 
-}) => {
+  }) => {
 
-  try {
+    try {
 
-    const response = await api.post(
+      const response = await api.post(
 
-      "/admin/foods",
+        "/admin/foods",
 
-      data
+        data
 
-    );
+      );
 
 
 
-    if (!response.data?.success) {
+      if (!response.data?.success) {
 
-      throw new Error(
+        throw new Error(
 
-        response.data?.message ||
+          response.data?.message ||
 
           "Failed to create food item"
 
-      );
+        );
 
-    }
-
-
-
-    const food = response.data.food;
-    invalidateGetCache('foods');
-
-    const newItem: MenuItem = {
-
-      id: food.id,
-
-      name: food.name,
-
-      description: food.description,
-
-      price: Number(food.price),
-
-      category:
-
-        food.categoryId as MenuItem["category"],
-
-      image: food.image || "",
-
-      dietary:
-
-        food.veg === "VEG"
-
-          ? "veg"
-
-          : "non-veg",
-
-      rating: food.rating ?? 0,
-
-      ratingCount: food.ratingCount ?? 0,
-
-      prepTimeMinutes:
-
-        food.prepTime ?? 0,
-
-      isAvailable:
-
-        food.available,
-
-      isBestseller:
-
-        food.popular,
-
-      isChefSpecial:
-
-        food.featured,
-
-    };
+      }
 
 
 
-    setMenuItemsList(prev => [
+      const food = response.data.food;
+      invalidateGetCache('foods');
 
-      ...prev,
+      const newItem: MenuItem = {
 
-      newItem,
+        id: food.id,
 
-    ]);
+        name: food.name,
 
-  } catch (error: any) {
+        description: food.description,
 
-    console.error(
+        price: Number(food.price),
 
-      "Add menu item error:",
+        category:
 
-      error?.response?.data ||
+          food.categoryId as MenuItem["category"],
+
+        image: food.image || "",
+
+        dietary:
+
+          food.veg === "VEG"
+
+            ? "veg"
+
+            : "non-veg",
+
+        rating: food.rating ?? 0,
+
+        ratingCount: food.ratingCount ?? 0,
+
+        prepTimeMinutes:
+
+          food.prepTime ?? 0,
+
+        isAvailable:
+
+          food.available,
+
+        isBestseller:
+
+          food.popular,
+
+        isChefSpecial:
+
+          food.featured,
+
+      };
+
+
+
+      setMenuItemsList(prev => [
+
+        ...prev,
+
+        newItem,
+
+      ]);
+
+    } catch (error: any) {
+
+      console.error(
+
+        "Add menu item error:",
+
+        error?.response?.data ||
 
         error?.message ||
 
         error
 
-    );
+      );
 
 
 
-    alert(
+      alert(
 
-      error?.response?.data?.message ||
+        error?.response?.data?.message ||
 
         "Failed to add menu item."
 
-    );
-
-
-
-    throw error;
-
-  }
-
-};
-
-
-
-const handleEditMenuItem = async (data: {
-
-  id: string;
-
-  name: string;
-
-  description: string;
-
-  price: number;
-
-  veg: "VEG" | "NON_VEG";
-
-  image: string;
-
-  prepTime: number;
-
-  categoryId: string;
-
-  available: boolean;
-
-  popular: boolean;
-
-  featured: boolean;
-
-}) => {
-
-  try {
-
-    const response = await api.put(
-
-      `/admin/foods/${data.id}`,
-
-      data
-
-    );
-
-
-
-    if (!response.data?.success) {
-
-      throw new Error(
-
-        response.data?.message ||
-
-          "Failed to update food item"
-
       );
+
+
+
+      throw error;
 
     }
 
-
-
-    const food = response.data.food;
-    invalidateGetCache('foods');
-
-    const updatedItem: MenuItem = {
-
-      id: food.id,
-
-      name: food.name,
-
-      description: food.description,
-
-      price: Number(food.price),
-
-      category:
-
-        food.categoryId as MenuItem["category"],
-
-      image: food.image || "",
-
-      dietary:
-
-        food.veg === "VEG"
-
-          ? "veg"
-
-          : "non-veg",
-
-      rating: food.rating ?? 0,
-
-      ratingCount: food.ratingCount ?? 0,
-
-      prepTimeMinutes:
-
-        food.prepTime ?? 0,
-
-      isAvailable:
-
-        food.available,
-
-      isBestseller:
-
-        food.popular,
-
-      isChefSpecial:
-
-        food.featured,
-
-    };
+  };
 
 
 
-    setMenuItemsList(prev =>
+  const handleEditMenuItem = async (data: {
 
-      prev.map(item =>
+    id: string;
 
-        item.id === updatedItem.id
+    name: string;
 
-          ? updatedItem
+    description: string;
 
-          : item
+    price: number;
 
-      )
+    veg: "VEG" | "NON_VEG";
 
-    );
+    image: string;
 
-  } catch (error: any) {
+    prepTime: number;
 
-    console.error(
+    categoryId: string;
 
-      "Edit menu item error:",
+    available: boolean;
 
-      error?.response?.data ||
+    popular: boolean;
+
+    featured: boolean;
+
+  }) => {
+
+    try {
+
+      const response = await api.put(
+
+        `/admin/foods/${data.id}`,
+
+        data
+
+      );
+
+
+
+      if (!response.data?.success) {
+
+        throw new Error(
+
+          response.data?.message ||
+
+          "Failed to update food item"
+
+        );
+
+      }
+
+
+
+      const food = response.data.food;
+      invalidateGetCache('foods');
+
+      const updatedItem: MenuItem = {
+
+        id: food.id,
+
+        name: food.name,
+
+        description: food.description,
+
+        price: Number(food.price),
+
+        category:
+
+          food.categoryId as MenuItem["category"],
+
+        image: food.image || "",
+
+        dietary:
+
+          food.veg === "VEG"
+
+            ? "veg"
+
+            : "non-veg",
+
+        rating: food.rating ?? 0,
+
+        ratingCount: food.ratingCount ?? 0,
+
+        prepTimeMinutes:
+
+          food.prepTime ?? 0,
+
+        isAvailable:
+
+          food.available,
+
+        isBestseller:
+
+          food.popular,
+
+        isChefSpecial:
+
+          food.featured,
+
+      };
+
+
+
+      setMenuItemsList(prev =>
+
+        prev.map(item =>
+
+          item.id === updatedItem.id
+
+            ? updatedItem
+
+            : item
+
+        )
+
+      );
+
+    } catch (error: any) {
+
+      console.error(
+
+        "Edit menu item error:",
+
+        error?.response?.data ||
 
         error?.message ||
 
         error
 
-    );
+      );
 
 
 
-    alert(
+      alert(
 
-      error?.response?.data?.message ||
+        error?.response?.data?.message ||
 
         "Failed to update menu item."
 
-    );
+      );
 
 
 
-    throw error;
+      throw error;
 
-  }
+    }
 
-};
+  };
 
 
 
-const handleResolveServiceRequest = (
+  const handleResolveServiceRequest = (
 
 
 
@@ -5282,15 +5298,15 @@ const handleResolveServiceRequest = (
 
 
 
-              ...request,
+            ...request,
 
 
 
-              resolved: true,
+            resolved: true,
 
 
 
-            }
+          }
 
 
 
