@@ -310,7 +310,7 @@ const AdminAuth: React.FC<AdminAuthProps> = ({ onLogin }) => {
 
           >
 
-            Admin Login
+            Boss-Login
 
           </h1>
 
